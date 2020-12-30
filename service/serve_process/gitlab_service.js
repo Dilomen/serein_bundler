@@ -1,4 +1,4 @@
-const execute = require('../../utils/execute')
+const { execute } = require('../../utils/execute')
 const conf = require('../../config')
 const fs = require('fs')
 const chalk = require('chalk')

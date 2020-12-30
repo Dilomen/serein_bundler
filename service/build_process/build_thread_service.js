@@ -1,5 +1,5 @@
 const { parentPort } = require('worker_threads');
-const execute = require('../../utils/execute')
+const { execute } = require('../../utils/execute')
 const { logger } = require('../../log.config')
 const config = require('../../config')
 const path = require('path')
