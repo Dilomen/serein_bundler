@@ -3,6 +3,7 @@ const router = new Router()
 const BundlerController = require('./controller/serve_process/bundler_controller')
 const UserController = require('./controller/serve_process/user_controller')
 const TaskController = require('./controller/serve_process/task_controller')
+const StatisticsController = require('./controller/serve_process/statistics_controller')
 const { decryption } = require('./utils/aes')
 const fs = require('fs')
 const path = require('path')
@@ -59,4 +60,11 @@ router.get('/bundler_detail', async (ctx) => {
   const bundlerController = new BundlerController(ctx)
   await bundlerController.searchDetail()
 })
+
+// 打包详情
+router.get('/statistics', async (ctx) => {
+  const statisticsController = new StatisticsController(ctx)
+  await statisticsController.searchSummation()
+})
+
 module.exports = router

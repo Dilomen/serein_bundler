@@ -102,7 +102,13 @@ class BuildService {
         let sql_params
         this.statusFactory(status)
         if (status === BUILD_TYPE.BUILD_SUCCESS || status === BUILD_TYPE.BUILD_FAIL) {
-            sql_sentence = 'UPDATE bundler_info SET build_status = ?, send_status = ?, consume_time = ? WHERE solo_id = ?'
+            sql_sentence = `
+            UPDATE
+                bundler_info
+            SET 
+                build_status = ?, send_status = ?, consume_time = ?
+            WHERE
+                solo_id = ?`
             sql_params = [this.buildStatus, this.sendStatus, useTime, soloId]
             const dateCommitConentPath = path.join(process.cwd(), `./build_log/${dayjs(new Date()).format('YYYY-MM-DD')}`)
             const commitConentPath = path.join(dateCommitConentPath, `/${this.build_dirname}`)

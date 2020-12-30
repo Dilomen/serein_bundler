@@ -108,7 +108,11 @@ class TaskService {
     let { ref = '', repository: { name = '' }, commits: [currentCommits = {}] = [], pusher: { name: fullName }, commitTime } = this.content
     let { id: commitId, committer: { username, name: personName }, message } = currentCommits
     ref = ref.replace('refs/heads/', '')
-    const sql_sentence = 'INSERT INTO bundler_info(solo_id, branch_name,build_status,send_status,belong_project,commit_id,commit_person, commit_person_name, commit_msg, commit_time) VALUES(?,?,?,?,?,?,?,?,?,?)';
+    const sql_sentence = `
+    INSERT INTO 
+      bundler_info(solo_id, branch_name,build_status,send_status,belong_project,commit_id,commit_person, commit_person_name, commit_msg, commit_time) 
+    VALUES
+      (?,?,?,?,?,?,?,?,?,?)`;
     const sql_params = [soloId, ref, BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.BUILD_WAIT, name, commitId, username || personName, fullName, message, commitTime];
     await dBUtils.insertField(sql_sentence, sql_params)
   }

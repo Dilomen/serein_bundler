@@ -10,22 +10,22 @@ module.exports = () => {
         return
       }
     }
-    if (ctx.path === '/login' || /_nuxt/.test(ctx.path) || ctx.path === '/webhook') {
+    if (['/favicon.ico', '/login', '/webhook', '/'].includes(ctx.path) || /_nuxt/.test(ctx.path)) {
       await next();
     } else {
       let authorization = ctx.cookies.get('BUNDLER_TOKEN') || ctx.header.authorization || ''
       if (!authorization) {
         ctx.status = 401
-        ctx.body = { code: 0, msg: '验证已过期，请重新登录' }
-        // ctx.response.redirect('/login')
+        // ctx.body = { code: 0, msg: '验证已过期，请重新登录' }
+        // ctx.response.redirect('#/login')
         return
       }
       authorization = authorization.replace('Bearer ', '')
       const result = await checkToken(authorization)
       if (!result) {
         ctx.status = 401
-        ctx.body = { code: 0, msg: '验证已过期，请重新登录' }
-        // ctx.response.redirect('/login')
+        // ctx.body = { code: 0, msg: '验证已过期，请重新登录' }
+        // ctx.response.redirect('#/login')
         return
       }
       await next()

@@ -1,5 +1,5 @@
 const dBUtils = require('../../utils/dbUtils')
-const {camlCaseObj} = require('../../utils/camlCase')
+const { camlCaseObj } = require('../../utils/camlCase')
 const SocketHandler = require('../../utils/socket')
 const TaskService = require('./task_service')
 const { uniteProjectBranch } = require('../../utils/common')
@@ -35,16 +35,39 @@ class BuildService {
     let searchSql = ''
     const [startTime, endTime] = this.content['commitTime[]'] || [] // 提交时间间隔
     if (startTime && endTime) {
-      searchSql = `SELECT * FROM bundler_info WHERE ${paramsStr ? paramsStr + 'AND' : ''} commit_time BETWEEN '${startTime}' AND '${endTime}' ORDER BY create_time DESC LIMIT ${sum},${limit};`
+      searchSql = `
+      SELECT * FROM 
+        bundler_info 
+      WHERE 
+        ${paramsStr ? paramsStr + 'AND' : ''} commit_time 
+      BETWEEN 
+        '${startTime}' 
+      AND 
+        '${endTime}' 
+      ORDER BY 
+        create_time 
+      DESC LIMIT 
+        ${sum},${limit};`
     } else {
-      searchSql = `SELECT * FROM bundler_info ${paramsStr ? 'WHERE ' + paramsStr : ''} ORDER BY create_time DESC LIMIT ${sum},${limit};`
+      searchSql = `
+      SELECT * FROM bundler_info 
+        ${paramsStr ? 'WHERE ' + paramsStr : ''} 
+      ORDER BY 
+        create_time 
+      DESC LIMIT
+        ${sum},${limit};`
     }
     let results = await dBUtils.search(searchSql)
     results = camlCaseObj(results)
     results.map(item => {
       item.statusShow = getStatusShow(item.buildStatus, item.sendStatus)
     })
-    const totalResult = await dBUtils.search(`SELECT COUNT(*) AS total FROM bundler_info ${paramsStr ? 'WHERE ' + paramsStr : ''}`)
+    const totalResult = await dBUtils.search(`
+      SELECT
+        COUNT(*) AS total
+      FROM 
+        bundler_info 
+      ${paramsStr ? 'WHERE ' + paramsStr : ''}`)
     return {
       total: totalResult[0].total,
       data: results,
@@ -52,8 +75,8 @@ class BuildService {
     }
   }
 
-  async searchDetail() {
-    const { id }= this.content
+  async searchDetail () {
+    const { id } = this.content
     const searchSql = `SELECT * FROM bundler_info WHERE id = ${id}`
     let results = await dBUtils.search(searchSql) || []
     let resResult = {}
@@ -64,7 +87,7 @@ class BuildService {
       try {
         const projectName = uniteProjectBranch(resResult.belongProject, resResult.branchName)
         commitContent = fs.readFileSync(path.resolve(process.cwd(), `./build_log/${resResult.createTime.slice(0, 10)}/${projectName}/${resResult.soloId}.log`), 'utf-8')
-      } catch(err) {
+      } catch (err) {
         commitContent = ''
       }
       resResult.commitContent = commitContent
@@ -72,8 +95,14 @@ class BuildService {
     return resResult
   }
 
-  async interrupt({ interruptId, branchName, belongProject }) {
-    const sql_sentence = 'UPDATE bundler_info SET build_status = ?, send_status = ? WHERE solo_id = ?';
+  async interrupt ({ interruptId, branchName, belongProject }) {
+    const sql_sentence = `
+      UPDATE
+        bundler_info
+      SET 
+        build_status = ?, send_status = ? 
+      WHERE 
+        solo_id = ?`;
     const sql_params = [BUILD_TYPE.BUILD_CANCEL, BUILD_TYPE.BUILD_CANCEL, interruptId];
     await dBUtils.updateField(sql_sentence, sql_params)
     SocketHandler.getInstance().emit(UPDATE_VIEW, { interruptId })
