@@ -1,0 +1,8 @@
+node_modules
+.vscode
+bundler_test/
+build/*
+logs/*
+remote_repo
+*error.log
+*debug.log
