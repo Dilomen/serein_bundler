@@ -11,7 +11,7 @@ parentPort.on('message', (data) => {
 })
 
 function build ({ projectPath, buildDirname, content }) {
-  const shellPath = path.resolve(__dirname, '../../public/shell/front_default.sh')
+  const shellPath = path.resolve(__dirname, './shell/front_default.sh')
   // 拉取下来的地址
   const gitClonePath = path.resolve(config.cwd, buildDirname)
   // 拉取下来地址中的项目地址
