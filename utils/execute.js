@@ -30,7 +30,6 @@ function executeFile (file, arg, options, cb, stdListener) {
     return new Promise((resolve, reject) => {
         try {
             const child = execFile(file, arg, options, cb)
-            console.log('child pid: ', child.pid)
             child.on('error', (err) => {
                 reject(err)
             })

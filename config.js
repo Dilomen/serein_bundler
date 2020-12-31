@@ -41,7 +41,8 @@ module.exports = {
         BASE_URL:'/',
         NODE_ENV: 'production'
     },
-    processSize: os.cpus().length - 5,
+    // processSize: os.cpus().length - 5,
+    processSize: 1,
     remoteRepoName: 'remote_repo',
     remoteRepoUrl: path.resolve(process.cwd(), 'remote_repo'),
     remoteGitUrl: 'http://192.168.34.2/yu.liu/remote_repo.git',// gitlab

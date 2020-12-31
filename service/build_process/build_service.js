@@ -29,23 +29,16 @@ class BuildService {
         this.timer = null
         this.status = BUILD_TYPE.BUILD_WAIT
         this.buildStatus = BUILD_TYPE.BUILD_WAIT
-        this.sendStatus = BUILD_TYPE.BUILD_WAIT
+        this.sendStatus = BUILD_TYPE.SEND_WAIT
     }
 
     start () {
-        const { ref = '', clone_url = '', soloId } = this.content
+        const { ref = '', soloId } = this.content
         process.send({ type: TYPE_ADD_BUILD, workerPid: process.pid, soloId, projectName: this.build_dirname })
         this.updateStatus(BUILD_TYPE.BUILD_START)
         this.execStdListening('开始打包: branch: ' + ref + '\nplatform: ' + process.platform + '\n')
-        let steps = []
-        const buildPath = path.resolve(config.cwd, this.build_dirname)
-        if (fs.existsSync(buildPath)) {
-            steps = [`git checkout ${ref} && git pull`, 'npm install', 'npm run build']
-        } else {
-            steps = [`mkdir ${buildPath}`, `git clone ${gitUserAndPass ? clone_url.replace(/(http:\/\/)/, '$1' + gitUserAndPass) : clone_url}`, `git checkout ${ref} && git pull`, 'npm install', 'npm run build']
-        }
         try {
-            this.build(steps)
+            this.build()
         } catch(err) {
             console.log(err)
         }
@@ -54,11 +47,11 @@ class BuildService {
         }, 1000)
     }
 
-    build (steps) {
+    build () {
         if (!buildThread) {
             buildThread = new Worker(threadServicePath, {});
         }
-        buildThread.postMessage({ steps, projectPath: this.projectPath, buildDirname: this.build_dirname, content: this.content })
+        buildThread.postMessage({ projectPath: this.projectPath, buildDirname: this.build_dirname, content: this.content })
         const _self = this
         buildThread.on('message', function (content) {
             if (content.type === 'std') {
@@ -148,7 +141,6 @@ class BuildService {
         } catch (err) {
             console.log(err)
         }
-
     }
 
     statusFactory (status) {

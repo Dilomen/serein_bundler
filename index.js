@@ -3,6 +3,7 @@ const config = require('./config')
 const { logger } = require('./log.config')
 const path = require('path')
 const fs = require('fs')
+
 process.on('error', (error) => {
   logger.error(error)
 })
@@ -27,7 +28,7 @@ if (!fs.existsSync(buildLogPath)) {
 }
 
 // 必须这么写
-require('./controller/master/worker_controller').listen(cluster)
 require('./controller/master/worker_controller').initServiceWorker()
+require('./controller/master/worker_controller').listen(cluster)
 require('./controller/master/worker_controller').checkOverflow(cluster)
 require('./controller/master/worker_controller').updateView(cluster)

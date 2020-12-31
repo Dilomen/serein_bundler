@@ -5,7 +5,7 @@ const BundlerService = require('../../service/serve_process/bundler_service')
 const TaskService = require('../../service/serve_process/task_service')
 const jwt = require('jsonwebtoken')
 const SocketHandler = require('../../utils/socket')
-const { INTERRUPT, TASKNOTICE } = require('../../utils/types')
+const { INTERRUPT, TASKNOTICE, UPDATE_LIST_VIEW } = require('../../utils/types')
 class BundlerContoller {
   constructor(ctx) {
     this._ctx = ctx
@@ -37,6 +37,14 @@ class BundlerContoller {
     const pusher = jwt.verify(authorization, 'ailpha')
     const { username = '' } = pusher
     if (username !== 'admin' && (!username || !commitPerson || commitPerson !== username)) return this._ctx.body = { code: 0, msg: '你没有权限中断当前打包' }
+    // 如果不是进行中的，那么就是等待队列中取消
+    const taskService = TaskService.getInstance()
+    const result = taskService.cancalTask(interruptId)
+    if (result) {
+      const bundlerService = new BundlerService()
+      await bundlerService.interrupt({ interruptId, branchName, belongProject })
+      return { code: 1, msg: '中断成功' }
+    }
     process.send({ type: INTERRUPT, data: interruptId })
     return new Promise((resolve) => {
       process.on('message', async (msg) => {

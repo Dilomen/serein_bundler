@@ -8,7 +8,7 @@ const dayjs = require('dayjs')
 const { v4: uuidv4 } = require('uuid')
 const { uniteProjectBranch } = require('../../utils/common')
 const rabbit = require('../../model/rabbitmq')
-const { UPDATE_VIEW, UPDATE_LIST_VIEW, BUILD_TYPE, BUILD_STATUS_SHOW } = require('../../utils/types')
+const { UPDATE_VIEW, UPDATE_LIST_VIEW, BUILD_TYPE } = require('../../utils/types')
 class TaskService {
   constructor(content) {
     this.content = content
@@ -40,7 +40,7 @@ class TaskService {
     // if (/^feature/i.test(ref)) return { code: 0, msg: '开发分支不打包' }
     const projectName = uniteProjectBranch(name, ref)
     await this.insertDB(soloId)
-    this.taskManager.enqueue({ name: projectName, data })
+    this.taskManager.enqueue({ name: projectName, data, soloId })
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
     // 有请求就询问当前是否有空闲的子进程
@@ -113,8 +113,14 @@ class TaskService {
       bundler_info(solo_id, branch_name,build_status,send_status,belong_project,commit_id,commit_person, commit_person_name, commit_msg, commit_time) 
     VALUES
       (?,?,?,?,?,?,?,?,?,?)`;
-    const sql_params = [soloId, ref, BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.BUILD_WAIT, name, commitId, username || personName, fullName, message, commitTime];
+    const sql_params = [soloId, ref, BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.SEND_WAIT, name, commitId, username || personName, fullName, message, commitTime];
     await dBUtils.insertField(sql_sentence, sql_params)
+  }
+
+  cancalTask(cancelId) {
+    let taskResult = this.taskManager.removeId(cancelId)
+    !taskResult && (taskResult = this.noticeTackManager.removeId(cancelId))
+    return !!taskResult
   }
 }
 

@@ -67,16 +67,16 @@ class LinkedQueue {
     remove (name) {
         if (this.length === 0) return
         let current = this.head
-        if (this.length === 1) {
+        if (this.length === 1 && name === this.head.data.name) {
             this.head = null
             this.tail = null
             --this.length
             return current
         }
         if (name === this.head.data.name) {
-          --this.length
-          this.head = this.head.next
-          return current
+            --this.length
+            this.head = this.head.next
+            return current
         }
         let preCurrent = this.head
         while (current && current.data.name !== name) {
@@ -84,13 +84,43 @@ class LinkedQueue {
             current = current.next
         }
         if (current) {
-          --this.length
-          if (!current.next) {
-              preCurrent.next = null; 
-              this.tail = preCurrent;
-          } else {
-              preCurrent.next = current.next
-          }
+            --this.length
+            if (!current.next) {
+                preCurrent.next = null;
+                this.tail = preCurrent;
+            } else {
+                preCurrent.next = current.next
+            }
+        }
+        return current
+    }
+    removeId (removeId) {
+        if (this.length === 0) return
+        let current = this.head
+        if (this.length === 1 && removeId === current.data.soloId) {
+            this.head = null
+            this.tail = null
+            --this.length
+            return current
+        }
+        if (removeId === this.head.data.soloId) {
+            --this.length
+            this.head = this.head.next
+            return current
+        }
+        let preCurrent = this.head
+        while (current && current.data.soloId !== removeId) {
+            preCurrent = current
+            current = current.next
+        }
+        if (current) {
+            --this.length
+            if (!current.next) {
+                preCurrent.next = null;
+                this.tail = preCurrent;
+            } else {
+                preCurrent.next = current.next
+            }
         }
         return current
     }

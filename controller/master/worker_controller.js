@@ -1,6 +1,3 @@
-/**
- * 该文件主要是主进程对子进程的管理相关
- */
 let workersManager = []
 let _cluster = null
 const { TYPE_ADD_BUILD, TYPE_FINISH_BUILD, TYPE_FINISH_SEND, TYPE_FILECACHE_ADD, FILECACHE, INTERRUPT, TASKNOTICE } = require('../../utils/types')
@@ -12,6 +9,10 @@ class WorkManagerController {
     this._ctx = ctx
   }
 
+  /**
+   * 监听子进程的消息
+   * @param {子进程群} cluster 
+   */
   static listen (cluster) {
     _cluster = cluster
     for (const id in _cluster.workers) {
@@ -51,7 +52,8 @@ class WorkManagerController {
    * 客户端交互进程
    */
   static initServiceWorker () {
-    serviceWorker = childProcess.fork(path.resolve(process.cwd(), './serve_worker.js'))
+    // execArgv 可以传入指定调试的端口号
+    serviceWorker = childProcess.fork(path.resolve(process.cwd(), './serve_worker.js'), [], { execArgv: ['--inspect=8081'] })
     serviceWorker.on('exit', () => {
       serviceWorker = childProcess.fork(path.resolve(process.cwd(), './serve_worker.js'))
     })
