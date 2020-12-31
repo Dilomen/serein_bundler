@@ -1,37 +1,27 @@
 const { parentPort } = require('worker_threads');
-const { execute } = require('../../utils/execute')
+const path = require('path')
+const { executeFile } = require('../../utils/execute')
 const { logger } = require('../../log.config')
 const config = require('../../config')
-const path = require('path')
 
 let startTime = ''
-parentPort.on('message', ({ steps, projectPath, buildDirname, content }) => {
-  build({ steps, projectPath, buildDirname, content })
+parentPort.on('message', (data) => {
+  build(data)
   startTime = new Date().getTime()
 })
 
-function build ({ steps, projectPath, buildDirname, content }) {
-  const cmd = steps.shift()
-  if (/git clone/.test(cmd)) {
-    projectPath = path.resolve(config.cwd, buildDirname)
-  }
-  if (/git checkout/.test(cmd)) {
-    projectPath = path.resolve(config.cwd, buildDirname, content.name)
-  }
-  let child = null
-  if (cmd === 'npm run build') {
-    child = execute(cmd, { cwd: projectPath, env: { ...process.env, ...config.env } }, null, (msg) => parentPort.postMessage({ data: decode(msg), type: 'std' }))
-  } else {
-    child = execute(cmd, { cwd: projectPath }, null, (msg) => parentPort.postMessage({ data: decode(msg), type: 'std' }))
-  }
+function build ({ projectPath, buildDirname, content }) {
+  const shellPath = path.resolve(__dirname, '../../public/shell/front_default.sh')
+  // 拉取下来的地址
+  const gitClonePath = path.resolve(config.cwd, buildDirname)
+  // 拉取下来地址中的项目地址
+  const checkoutProjectPath = path.resolve(config.cwd, buildDirname, content.name)
+  const child = executeFile(shellPath, ['-gp', gitClonePath, '-cpp', checkoutProjectPath, '-clone_url', content.clone_url, '-branch', content.ref], null, null, (msg) => {
+    parentPort.postMessage({ data: decode(msg), type: 'std' })
+  })
   child.then((code) => {
     if (code === 0) {
-      if (steps.length === 0) {
-        parentPort.postMessage({ type: 'success', data: { projectPath, useTime: new Date().getTime() - startTime } })
-      } else {
-        parentPort.postMessage({ data: '开始下一步\n', type: 'std' })
-        build({ steps, projectPath, buildDirname, content })
-      }
+      parentPort.postMessage({ type: 'success', data: { projectPath, useTime: new Date().getTime() - startTime } })
     } else {
       parentPort.postMessage({ type: 'fail', data: { projectPath, useTime: new Date().getTime() - startTime } })
     }

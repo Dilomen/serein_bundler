@@ -130,6 +130,7 @@ class BuildService {
 
     async updateResult ({ type: status, useTime }) {
         try {
+            console.log("打包总用时: ", useTime / 1000)
             const { currentCommits: { committer: { username }, message }, ref, name, name: repoName = '', commitTime } = this.content
             await this.updateStatus(status, useTime)
             // 打包结束
@@ -138,7 +139,7 @@ class BuildService {
             this.cwdOutput = ''
             const buildPath = fs.existsSync(this.projectPath + '/dist') ? this.projectPath + '/dist' : this.projectPath + '/build'
             if (status === BUILD_TYPE.BUILD_SUCCESS) {
-                await this.compress(buildMessage, buildPath)
+                // await this.compress(buildMessage, buildPath)
                 this.MQProducer('success', { message: '【 *打包成功!* 】\n' + buildMessage, commitMsg: message, dirName: this.build_dirname, repoName, buildPath, branchName: ref })
                 // 打包失败
             } else if (status === BUILD_TYPE.BUILD_FAIL) {
