@@ -5,7 +5,7 @@ const BundlerService = require('../../service/serve_process/bundler_service')
 const TaskService = require('../../service/serve_process/task_service')
 const jwt = require('jsonwebtoken')
 const SocketHandler = require('../../utils/socket')
-const { INTERRUPT, TASKNOTICE } = require('../../utils/types')
+const { INTERRUPT, TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS } = require('../../utils/types')
 const throttle = require('../../utils/throttle')
 class BundlerContoller {
   constructor(ctx) {
@@ -31,7 +31,7 @@ class BundlerContoller {
    * 中断服务
    * @param {*} param0 
    */
-  async interrupt ({ id: interruptId, branchName, belongProject, commitPerson }) {
+  async interrupt ({ id: interruptId, branch, repositoryName, commitPerson }) {
     let authorization = this._ctx.cookies.get('BUNDLER_TOKEN') || this._ctx.header.authorization || ''
     if (!authorization) return { code: 0, msg: '没有权限中断' }
     authorization = authorization.replace('Bearer ', '')
@@ -52,7 +52,7 @@ class BundlerContoller {
       const interruptNotice = throttle(async (msg, resolve) => {
         if (msg.result) {
           const bundlerService = new BundlerService()
-          await bundlerService.interrupt({ interruptId, branchName, belongProject, isNoticeDispatch: true })
+          await bundlerService.interrupt({ interruptId, branch, repositoryName, isNoticeDispatch: true })
           resolve({ code: 1, msg: '中断成功' })
           return
         }
@@ -70,6 +70,16 @@ class BundlerContoller {
       SocketHandler.getInstance().emit(msg.type, msg.data)
       if (msg.type === TASKNOTICE) {
         TaskService.getInstance().notice(msg.taskName)
+      }
+    })
+  }
+
+  // 更新数据库中，崩溃的打包进程中执行的任务状态，置为打包失败
+  static updateDiedProcessTaskStatus () {
+    process.on('message', async (msg) => {
+      if (msg.type === UPDATE_DIED_PROCESS_TASK_STATUS) {
+        const bundlerService = new BundlerService()
+        await bundlerService.updateDiedProcessTaskStatus(msg.soloId)
       }
     })
   }

@@ -1,6 +1,6 @@
-let workersManager = []
+let workersManager = [] // 打包进程中的相关信息
 let _cluster = null
-const { TYPE_ADD_BUILD, TYPE_FINISH_BUILD, TYPE_FINISH_SEND, TYPE_FILECACHE_ADD, FILECACHE, INTERRUPT, TASKNOTICE } = require('../../utils/types')
+const { TYPE_ADD_BUILD, TYPE_FINISH_BUILD, TYPE_FINISH_SEND, TYPE_FILECACHE_ADD, FILECACHE, INTERRUPT, TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS } = require('../../utils/types')
 const childProcess = require('child_process')
 const path = require('path')
 let serviceWorker = null
@@ -39,6 +39,8 @@ class WorkManagerController {
     _cluster.on('exit', (worker) => {
       const deidWork = workersManager.find(item => item.workerPid === worker.process.pid)
       workersManager = workersManager.filter(item => item.workerPid !== worker.process.pid)
+      // 防止更新数据库操作出现问题，导致主进程崩溃，所以将更新数据库的任务分发给业务进程来处理
+      serviceWorker.send({ type: UPDATE_DIED_PROCESS_TASK_STATUS, soloId: deidWork.soloId })
       console.log('worker ' + worker.process.pid + ' died')
       serviceWorker.send({ type: TASKNOTICE, taskName: deidWork.projectName })
       setTimeout(() => {

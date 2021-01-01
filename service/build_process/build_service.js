@@ -8,11 +8,9 @@ const dBUtils = require('../../utils/dbUtils')
 const { encryption } = require('../../utils/aes')
 const { logger } = require('../../log.config')
 const rabbit = require('../../model/rabbitmq')
-const gitUserAndPass = require('../../config').gitUserAndPass
-// const TransmitService = require('../serve_process/transmit_service')
+// const gitUserAndPass = require('../../config').gitUserAndPass
 const { Worker } = require('worker_threads');
 const { uniteProjectBranch } = require('../../utils/common')
-// const iconv = require('iconv-lite')
 const threadServicePath = path.resolve(__dirname, './build_thread_service.js')
 let buildThread = new Worker(threadServicePath, {});
 const { UPDATE_DETAIL, UPDATE_VIEW, UPDATE_LIST_VIEW, TYPE_ADD_BUILD, TYPE_FINISH_BUILD, TYPE_FILECACHE_ADD, TYPE_FINISH_SEND, BUILD_TYPE } = require('../../utils/types')
@@ -20,10 +18,8 @@ const { UPDATE_DETAIL, UPDATE_VIEW, UPDATE_LIST_VIEW, TYPE_ADD_BUILD, TYPE_FINIS
 class BuildService {
     constructor(content) {
         this.content = content
-        let { ref = '', name = '' } = content
-        ref = ref.replace('refs/heads/', '')
-        this.content.ref = ref
-        this.build_dirname = uniteProjectBranch(name, ref)
+        let { branch, repositoryName } = content
+        this.build_dirname = uniteProjectBranch(repositoryName, branch)
         this.projectPath = config.cwd
         this.cwdOutput = ''
         this.timer = null
@@ -33,13 +29,13 @@ class BuildService {
     }
 
     start () {
-        const { ref = '', soloId } = this.content
+        const { branch, soloId } = this.content
         process.send({ type: TYPE_ADD_BUILD, workerPid: process.pid, soloId, projectName: this.build_dirname })
         this.updateStatus(BUILD_TYPE.BUILD_START)
-        this.execStdListening('开始打包: branch: ' + ref + '\nplatform: ' + process.platform + '\n')
+        this.execStdListening('开始打包: branch: ' + branch + '\nplatform: ' + process.platform + '\n')
         try {
             this.build()
-        } catch(err) {
+        } catch (err) {
             console.log(err)
         }
         this.timer = setInterval(async () => {
@@ -123,20 +119,19 @@ class BuildService {
 
     async updateResult ({ type: status, useTime }) {
         try {
-            console.log("打包总用时: ", useTime / 1000)
-            const { currentCommits: { committer: { username }, message }, ref, name, name: repoName = '', commitTime } = this.content
+            const { pusher, commitMessage, branch, repositoryName, commitTime } = this.content
             await this.updateStatus(status, useTime)
             // 打包结束
             process.send({ type: TYPE_FINISH_BUILD, soloId: '', projectName: '', workerPid: process.pid })
-            let buildMessage = ` @${username} 提交了任务\n分支名：【 *${ref}* 】\n项目名：【 *${name}* 】\n提交信息：${message}\n提交时间：${commitTime}\n打包用时： *${Math.ceil(useTime / 1000)}s*`
+            let buildMessage = ` @${pusher} 提交了任务\n分支名：【 *${branch}* 】\n项目名：【 *${repositoryName}* 】\n提交信息：${commitMessage}\n提交时间：${commitTime}\n打包用时： *${Math.ceil(useTime / 1000)}s*`
             this.cwdOutput = ''
             const buildPath = fs.existsSync(this.projectPath + '/dist') ? this.projectPath + '/dist' : this.projectPath + '/build'
             if (status === BUILD_TYPE.BUILD_SUCCESS) {
                 // await this.compress(buildMessage, buildPath)
-                this.MQProducer('success', { message: '【 *打包成功!* 】\n' + buildMessage, commitMsg: message, dirName: this.build_dirname, repoName, buildPath, branchName: ref })
+                this.MQProducer('success', { message: '【 *打包成功!* 】\n' + buildMessage, commitMsg: commitMessage, dirName: this.build_dirname, repoName: repositoryName, buildPath, branchName: branch })
                 // 打包失败
             } else if (status === BUILD_TYPE.BUILD_FAIL) {
-                this.MQProducer('error', { message: '【 *打包失败！* 】\n' + buildMessage, commitMsg: message, dirName: this.build_dirname, repoName, buildPath })
+                this.MQProducer('error', { message: '【 *打包失败！* 】\n' + buildMessage, commitMsg: commitMessage, dirName: this.build_dirname, repoName: repositoryName, buildPath })
             }
         } catch (err) {
             console.log(err)
@@ -149,12 +144,11 @@ class BuildService {
 
     // 压缩
     async compress (buildMessage, buildPath) {
-        const { currentCommits: { timestamp } } = this.content
         buildMessage = encryption(buildMessage)
         return new Promise((resolve, reject) => {
             fs.writeFile(buildPath + '/.env', buildMessage, (err) => {
                 if (err) throw err
-                const zipBuildPath = this.projectPath + `/${dayjs(timestamp).format('YYYY-MM-DD-HH_mm_ss')}.zip`
+                const zipBuildPath = this.projectPath + `/${dayjs(new Date()).format('YYYY-MM-DD-HH_mm_ss')}.zip`
                 compressing.zip.compressDir(buildPath + '/', zipBuildPath).then((err) => {
                     if (err) logger.error(err)
                     // new TransmitService().sendFile(zipBuildPath)

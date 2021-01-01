@@ -53,6 +53,7 @@ redisClient().then(client => {
 // 必须这么写
 
 require('./controller/serve_process/bundler_controller').updateView()
+require('./controller/serve_process/bundler_controller').updateDiedProcessTaskStatus()
 app.use(router.routes())
   .use(router.allowedMethods())
   .use(static('public/views'))

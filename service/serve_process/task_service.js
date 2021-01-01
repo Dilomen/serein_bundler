@@ -32,18 +32,35 @@ class TaskService {
   async addTask (data) {
     const soloId = uuidv4()
     data.soloId = soloId
-    data.commitTime = dayjs(new Date()).format('YYYY-MM-DD HH:mm:ss')
     this.content = data
-    let { ref = '', repository: { name = '' }, commits: [currentCommits] = [] } = data
-    if (!currentCommits) return { code: 0, msg: '没有相关的提交记录' }
-    ref = ref.replace('refs/heads/', '')
+    let { repositoryName, commitId, branch } = data
+    if (!commitId) return { code: 0, msg: '没有相关的提交信息' }
     // if (/^feature/i.test(ref)) return { code: 0, msg: '开发分支不打包' }
-    const projectName = uniteProjectBranch(name, ref)
+    const projectName = uniteProjectBranch(repositoryName, branch)
     await this.insertDB(soloId)
     this.taskManager.enqueue({ name: projectName, data, soloId })
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
-    // 有请求就询问当前是否有空闲的子进程
+    this.dispatch(true)
+  }
+
+  /**
+   * 重新打包
+   * @param {*} data 
+   */
+  async rebuildTask(data) {
+    const sql_sentence = `
+    UPDATE
+      bundler_info
+    SET
+      build_status=?, send_status=?
+    WHERE
+      sole_id=?`;
+    const sql_params = [BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.SEND_WAIT, data.soloId];
+    await dBUtils.updateField(sql_sentence, sql_params)
+    this.taskManager.enqueue({ name: data.projectName, data, soloId: data.soloId })
+    SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId: data.soloId })
+    SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
     this.dispatch(true)
   }
 
@@ -52,7 +69,7 @@ class TaskService {
    * @param {Boolean} isAddTask 是否新任务
    */
   async dispatch (isAddTask, taskName) {
-    // 当前是否有空闲进程
+    // 当前是否有空闲的打包子进程
     if (this.workTaskMap.size < config.processSize) {
       let buildProject
       const noticeTaskSize = this.noticeTackManager.size()
@@ -98,23 +115,26 @@ class TaskService {
    * @param {String} 任务名称
    */
   notice (taskName) {
-    console.log('notice: ', taskName)
     this.updateWorkTask(taskName, false)
     this.dispatch(false, taskName)
   }
 
   async insertDB (soloId) {
-    // full_name : github里为name
-    let { ref = '', repository: { name = '' }, commits: [currentCommits = {}] = [], pusher: { name: fullName }, commitTime } = this.content
-    let { id: commitId, committer: { username, name: personName }, message } = currentCommits
-    ref = ref.replace('refs/heads/', '')
+    let { branch, repositoryName, remoteUrl, commitId, commitPerson, commitPersonEmail, commitTime, commitMessage, pusher } = this.content
     const sql_sentence = `
     INSERT INTO 
-      bundler_info(solo_id, branch_name,build_status,send_status,belong_project,commit_id,commit_person, commit_person_name, commit_msg, commit_time) 
+      bundler_info(solo_id, branch, build_status, send_status, repository_name, pusher, commit_msg) 
     VALUES
-      (?,?,?,?,?,?,?,?,?,?)`;
-    const sql_params = [soloId, ref, BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.SEND_WAIT, name, commitId, username || personName, fullName, message, commitTime];
+      (?,?,?,?,?,?,?)`;
+    const sql_params = [soloId, branch, BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.SEND_WAIT, repositoryName, pusher, commitMessage];
     await dBUtils.insertField(sql_sentence, sql_params)
+    const sql_commit_sentence = `
+    INSERT INTO 
+      commit_record(solo_id, clone_url, commit_id, commit_person, commit_person_email, commit_time, commit_message) 
+    VALUES
+      (?,?,?,?,?,?,?)`;
+    const sql_commit_params = [soloId, remoteUrl, commitId, commitPerson, commitPersonEmail, commitTime, commitMessage];
+    await dBUtils.insertField(sql_commit_sentence, sql_commit_params)
   }
 
   cancalTask(cancelId) {

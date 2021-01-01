@@ -10,13 +10,13 @@ parentPort.on('message', (data) => {
   startTime = new Date().getTime()
 })
 
-function build ({ projectPath, buildDirname, content }) {
+function build ({ projectPath, buildDirname, content: { repositoryName, cloneUrl, branch } }) {
   const shellPath = path.resolve(__dirname, './shell/front_default.sh')
   // 拉取下来的地址
   const gitClonePath = path.resolve(config.cwd, buildDirname)
   // 拉取下来地址中的项目地址
-  const checkoutProjectPath = path.resolve(config.cwd, buildDirname, content.name)
-  const child = executeFile(shellPath, ['-gp', gitClonePath, '-cpp', checkoutProjectPath, '-clone_url', content.clone_url, '-branch', content.ref], null, null, (msg) => {
+  const checkoutProjectPath = path.resolve(config.cwd, buildDirname, repositoryName)
+  const child = executeFile(shellPath, ['-gp', gitClonePath, '-cpp', checkoutProjectPath, '-clone_url', cloneUrl, '-branch', branch], null, null, (msg) => {
     parentPort.postMessage({ data: decode(msg), type: 'std' })
   })
   child.then((code) => {
