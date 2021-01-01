@@ -45,13 +45,13 @@ process.on('uncaughtException', error => {
   process.exit(1)
 });
 
-require('./service/serve_process/gitlab_service').pull()
+require('./service/serve_process/notice_service/gitlab_service').pull()
 const redisClient = require('./model/redis')
 redisClient().then(client => {
   require('./service/serve_process/cache_service')(client)
 })
 // 必须这么写
-
+// require('./controller/serve_process/bundler_controller').initMessageConsumer()
 require('./controller/serve_process/bundler_controller').updateView()
 require('./controller/serve_process/bundler_controller').updateDiedProcessTaskStatus()
 require('./controller/serve_process/bundler_controller').initRebuildTask()

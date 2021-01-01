@@ -8,9 +8,9 @@ class TransmitService {
 
   // sendFile (localFilePath) {
   //   scpClient.scp(localFilePath, {
-  //     host: '118.89.19.172',
+  //     host: 'xxx.xxx.xxx.xx',
   //     username: 'root',
-  //     password: 'ZHAOJIEFENG*0312',
+  //     password: '',
   //     path: '/home/'
   //   }, (err) => {
   //     if (err) logger.error(err)

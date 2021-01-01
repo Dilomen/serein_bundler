@@ -5,8 +5,7 @@ const BundlerService = require('../../service/serve_process/bundler_service')
 const TaskService = require('../../service/serve_process/task_service')
 const jwt = require('jsonwebtoken')
 const SocketHandler = require('../../utils/socket')
-const { INTERRUPT, TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS } = require('../../utils/types')
-const throttle = require('../../utils/throttle')
+const { TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS } = require('../../utils/types')
 const dBUtils = require('../../utils/dbUtils')
 const TaskController = require('../../controller/serve_process/task_controller')
 class BundlerContoller {
@@ -40,30 +39,9 @@ class BundlerContoller {
     const pusher = jwt.verify(authorization, 'ailpha')
     const { username = '' } = pusher
     if (username !== 'admin' && (!username || !commitPerson || commitPerson !== username)) return this._ctx.body = { code: 0, msg: '你没有权限中断当前打包' }
-    // 如果不是进行中的，那么就是等待队列中取消
-    const taskService = TaskService.getInstance()
-    const result = taskService.cancalTask(interruptId)
-    if (result) {
-      const bundlerService = new BundlerService()
-      await bundlerService.interrupt({ interruptId, isNoticeDispatch: false })
-      return { code: 1, msg: '中断成功' }
-    }
-    return new Promise((resolve) => {
-      process.send({ type: INTERRUPT, data: interruptId })
-      // 节流：防止执行多次中断操作
-      const interruptNotice = throttle(async (msg, resolve) => {
-        if (msg.result) {
-          const bundlerService = new BundlerService()
-          await bundlerService.interrupt({ interruptId, branch, repositoryName, isNoticeDispatch: true })
-          resolve({ code: 1, msg: '中断成功' })
-          return
-        }
-        resolve({ code: 0, msg: '无法停止当前打包' })
-      }, 500)
-      process.on('message', async (msg) => {
-        interruptNotice(msg, resolve)
-      })
-    })
+    const bundlerService = new BundlerService()
+    const result = await bundlerService.interrupt({ interruptId, branch, repositoryName })
+    return result
   }
 
   /**
@@ -80,7 +58,9 @@ class BundlerContoller {
     })
   }
 
-  // 更新数据库中，崩溃的打包进程中执行的任务状态，置为打包失败
+  /**
+   * 更新数据库中，崩溃的打包进程中执行的任务状态，置为打包失败
+   */
   static updateDiedProcessTaskStatus () {
     process.on('message', async (msg) => {
       if (msg.type === UPDATE_DIED_PROCESS_TASK_STATUS) {
@@ -106,6 +86,12 @@ class BundlerContoller {
     soloIds = soloIds.map(item => item.soloId)
     new TaskController().reBuildTask(soloIds)
   }
+
+  /**
+   * 初始化打包消息的消费者
+   * @memberof BundlerContoller
+   */
+  initMessageConsumer() {}
 }
 
 module.exports = BundlerContoller

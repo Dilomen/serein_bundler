@@ -6,6 +6,10 @@ class TaskController {
     this._ctx = ctx
   }
 
+  /**
+   * 处理webhook的请求过来的数据，并添加到任务
+   * @memberof TaskController
+   */
   async addTask () {
     this.content = this._ctx.request.body || {}
     let { ref = '', commits = [] } = this.content
@@ -20,7 +24,7 @@ class TaskController {
   }
 
   async reBuildTask (soloIds) {
-    if (!soloIds) return
+    if (!soloIds || soloIds.length === 0) return
     if (typeof soloIds === 'string') {
       soloIds = [soloIds]
     }

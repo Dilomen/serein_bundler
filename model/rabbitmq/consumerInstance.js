@@ -1,11 +1,13 @@
-// const chatService = require('../../service/serve_process/chat_service')
-// const GitlabService = require('../../service/serve_process/gitlab_service')
+const chatService = require('../../service/serve_process/notice_service/chat_service')
+// const GitlabService = require('../../service/serve_process/notice_service/gitlab_service')
 const Consumer = require('./consumer.js')
 const create = require('./connect.js')
 const { logger } = require('../../log.config')
 let gitlab = null
 // let other = null
-create().then(({ ch }) => {
+
+module.exports = async () => {
+  const { ch } = await create()
   gitlab = new Consumer(ch)
   gitlab
     .addQueue('gitlab', 'anheng')
@@ -48,9 +50,6 @@ create().then(({ ch }) => {
   //     },
   //     { noAck: false }
   //   )
-})
-
-module.exports = () => {
   return new Promise(resolve => {
     gitlab && resolve(gitlab)
   })

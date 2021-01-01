@@ -1,9 +1,9 @@
-const { execute } = require('../../utils/execute')
-const conf = require('../../config')
+const { execute } = require('../../../utils/execute')
+const conf = require('../../../config')
 const fs = require('fs')
 const chalk = require('chalk')
-const { logger } = require('../../log.config')
-const { copySync } = require('../../utils/copyDir')
+const { logger } = require('../../../log.config')
+const { copySync } = require('../../../utils/copyDir')
 class GitlabService {
   constructor(msg) {
     this.message = JSON.parse(msg)
