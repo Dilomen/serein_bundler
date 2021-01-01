@@ -5,7 +5,8 @@ const BundlerService = require('../../service/serve_process/bundler_service')
 const TaskService = require('../../service/serve_process/task_service')
 const jwt = require('jsonwebtoken')
 const SocketHandler = require('../../utils/socket')
-const { INTERRUPT, TASKNOTICE, UPDATE_LIST_VIEW } = require('../../utils/types')
+const { INTERRUPT, TASKNOTICE } = require('../../utils/types')
+const throttle = require('../../utils/throttle')
 class BundlerContoller {
   constructor(ctx) {
     this._ctx = ctx
@@ -42,21 +43,23 @@ class BundlerContoller {
     const result = taskService.cancalTask(interruptId)
     if (result) {
       const bundlerService = new BundlerService()
-      await bundlerService.interrupt({ interruptId, branchName, belongProject })
+      await bundlerService.interrupt({ interruptId, isNoticeDispatch: false })
       return { code: 1, msg: '中断成功' }
     }
-    process.send({ type: INTERRUPT, data: interruptId })
     return new Promise((resolve) => {
-      process.on('message', async (msg) => {
-        if (msg.type === INTERRUPT) {
-          if (msg.result) {
-            const bundlerService = new BundlerService()
-            await bundlerService.interrupt({ interruptId, branchName, belongProject })
-            resolve({ code: 1, msg: '中断成功' })
-            return
-          }
-          resolve({ code: 0, msg: '无法停止当前打包' })
+      process.send({ type: INTERRUPT, data: interruptId })
+      // 节流：防止执行多次中断操作
+      const interruptNotice = throttle(async (msg, resolve) => {
+        if (msg.result) {
+          const bundlerService = new BundlerService()
+          await bundlerService.interrupt({ interruptId, branchName, belongProject, isNoticeDispatch: true })
+          resolve({ code: 1, msg: '中断成功' })
+          return
         }
+        resolve({ code: 0, msg: '无法停止当前打包' })
+      }, 500)
+      process.on('message', async (msg) => {
+        interruptNotice(msg, resolve)
       })
     })
   }

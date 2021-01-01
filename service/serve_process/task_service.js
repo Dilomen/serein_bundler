@@ -77,7 +77,6 @@ class TaskService {
       rabbits.producer.sendQueueMsg('dispatch', buildProject.data.data, {}, (err) => {
           if (err) { logger.error(err) }
       })
-
     }
   }
 
@@ -99,6 +98,7 @@ class TaskService {
    * @param {String} 任务名称
    */
   notice (taskName) {
+    console.log('notice: ', taskName)
     this.updateWorkTask(taskName, false)
     this.dispatch(false, taskName)
   }

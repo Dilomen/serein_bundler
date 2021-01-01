@@ -95,7 +95,13 @@ class BuildService {
     return resResult
   }
 
-  async interrupt ({ interruptId, branchName, belongProject }) {
+  async interrupt ({ interruptId, branchName, belongProject, isNoticeDispatch }) {
+    // 是否通知派发任务，如果是中断未开始的任务，就不需要通知，如果是进行中的任务，就通知
+    if (isNoticeDispatch) {
+      branchName = branchName.replace('refs/heads/', '')
+      const projectName = uniteProjectBranch(belongProject, branchName)
+      TaskService.getInstance().notice(projectName)
+    }
     const sql_sentence = `
       UPDATE
         bundler_info
@@ -107,9 +113,6 @@ class BuildService {
     await dBUtils.updateField(sql_sentence, sql_params)
     SocketHandler.getInstance().emit(UPDATE_VIEW, { interruptId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
-    branchName = branchName.replace('refs/heads/', '')
-    const projectName = uniteProjectBranch(belongProject, branchName)
-    TaskService.getInstance().notice(projectName)
   }
 }
 
