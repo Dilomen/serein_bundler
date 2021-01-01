@@ -115,9 +115,9 @@ class BuildService {
    */
   async updateDiedProcessTaskStatus(soloId) {
     const currentTime = new Date()
-    const searchSql = `SELECT repository_name, commit_msg, branch, create_time, pusher FROM bundler_info WHERE solo_id='${soloId}'`
+    const searchSql = `SELECT repository_name, commit_message, branch, create_time, pusher FROM bundler_info WHERE solo_id='${soloId}'`
     const result = await dBUtils.search(searchSql)
-    const { repository_name: repositoryName, commit_msg: commitMessage, pusher, branch, create_time: createTime } = (result[0] || {})
+    const { repository_name: repositoryName, commit_message: commitMessage, pusher, branch, create_time: createTime } = (result[0] || {})
     const useTime = ((currentTime - new Date(createTime)) || 0).toFixed(2)
     await this.updateTaskStatus(soloId, BUILD_TYPE.BUILD_FAIL, BUILD_TYPE.SEND_START, useTime)
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })

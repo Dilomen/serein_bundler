@@ -7,6 +7,8 @@ const jwt = require('jsonwebtoken')
 const SocketHandler = require('../../utils/socket')
 const { INTERRUPT, TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS } = require('../../utils/types')
 const throttle = require('../../utils/throttle')
+const dBUtils = require('../../utils/dbUtils')
+const TaskController = require('../../controller/serve_process/task_controller')
 class BundlerContoller {
   constructor(ctx) {
     this._ctx = ctx
@@ -64,7 +66,11 @@ class BundlerContoller {
     })
   }
 
-  // socket通知页面
+  /**
+   * socket通知页面
+   * @static
+   * @memberof BundlerContoller
+   */
   static updateView () {
     process.on('message', (msg) => {
       SocketHandler.getInstance().emit(msg.type, msg.data)
@@ -82,6 +88,23 @@ class BundlerContoller {
         await bundlerService.updateDiedProcessTaskStatus(msg.soloId)
       }
     })
+  }
+
+  /**
+   * 服务重启时，对数据库中原本未完成打包（等待，开始状态）的项目，进行打包处理
+   * @memberof BundlerContoller
+   */
+  static async initRebuildTask() {
+    let searchSql = `
+    SELECT 
+      solo_id AS soloId
+    FROM 
+      bundler_info 
+    WHERE 
+      build_status='1' OR build_status='2'`
+    let soloIds = await dBUtils.search(searchSql)
+    soloIds = soloIds.map(item => item.soloId)
+    new TaskController().reBuildTask(soloIds)
   }
 }
 

@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid')
 const { uniteProjectBranch } = require('../../utils/common')
 const rabbit = require('../../model/rabbitmq')
 const { UPDATE_VIEW, UPDATE_LIST_VIEW, BUILD_TYPE } = require('../../utils/types')
+let rabbits = null
 class TaskService {
   constructor(content) {
     this.content = content
@@ -55,10 +56,11 @@ class TaskService {
     SET
       build_status=?, send_status=?
     WHERE
-      sole_id=?`;
+      solo_id=?`;
     const sql_params = [BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.SEND_WAIT, data.soloId];
     await dBUtils.updateField(sql_sentence, sql_params)
-    this.taskManager.enqueue({ name: data.projectName, data, soloId: data.soloId })
+    const projectName = uniteProjectBranch(data.repositoryName, data.branch)
+    this.taskManager.enqueue({ name: projectName, data, soloId: data.soloId })
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId: data.soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
     this.dispatch(true)
@@ -90,7 +92,7 @@ class TaskService {
       if (!buildProject) return
       // 进入工作
       this.updateWorkTask(buildProject.data.name, true)
-      let rabbits = await rabbit()
+      !rabbits && (rabbits = await rabbit())
       rabbits.producer.sendQueueMsg('dispatch', buildProject.data.data, {}, (err) => {
           if (err) { logger.error(err) }
       })
@@ -123,7 +125,7 @@ class TaskService {
     let { branch, repositoryName, remoteUrl, commitId, commitPerson, commitPersonEmail, commitTime, commitMessage, pusher } = this.content
     const sql_sentence = `
     INSERT INTO 
-      bundler_info(solo_id, branch, build_status, send_status, repository_name, pusher, commit_msg) 
+      bundler_info(solo_id, branch, build_status, send_status, repository_name, pusher, commit_message) 
     VALUES
       (?,?,?,?,?,?,?)`;
     const sql_params = [soloId, branch, BUILD_TYPE.BUILD_WAIT, BUILD_TYPE.SEND_WAIT, repositoryName, pusher, commitMessage];

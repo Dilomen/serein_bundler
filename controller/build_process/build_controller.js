@@ -9,14 +9,6 @@ class BuildContoller {
         const buildService = new BuildService(content)
         buildService.start()
     }
-
-    /**
-     * 重新打包：一般就是平台发起的，或者服务重启，对原本未开始或者未结束的包进行重新打包
-     * @param {Object} content 请求内容
-     */
-    async rebuild (content) {
-        console.log(content)
-    }
 }
 
 module.exports = BuildContoller
