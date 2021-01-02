@@ -1,10 +1,6 @@
 const { logger } = require('./log.config')
 const buildService = require('./service/build_process/build_service')
-
-const consumer = require('./model/rabbitmq/consumerTaskInstance')
-consumer().then((cons) => {
-  global.consumerInstance = cons
-})
+require('./controller/build_process/build_controller').initTaskConsumer()
 
 process.on('error', (error) => {
   logger.error(error)

@@ -1,8 +1,9 @@
 const redis = require('redis')
 const redisConfig = require('../config').redis
-
+let redisClient = null
 module.exports = () => new Promise((resolve, reject) => {
-  const redisClient = redis.createClient(redisConfig)
+  if (redisClient) resolve(redisClient)
+  redisClient = redis.createClient(redisConfig)
   redisClient.on('connect', function () {
     console.log('redis connect success!');
   });

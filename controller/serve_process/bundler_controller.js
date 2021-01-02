@@ -8,6 +8,11 @@ const SocketHandler = require('../../utils/socket')
 const { TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS } = require('../../utils/types')
 const dBUtils = require('../../utils/dbUtils')
 const TaskController = require('../../controller/serve_process/task_controller')
+const Consumer = require('../../model/rabbitmq/consumer')
+// const chatService = require('../../service/serve_process/notice_service/chat_service')
+const GitlabService = require('../../service/serve_process/notice_service/gitlab_service')
+// const noteService = require('../../service/serve_process/notice_service/note_service')
+// const emailService = require('../../service/serve_process/notice_service/email_service')
 class BundlerContoller {
   constructor(ctx) {
     this._ctx = ctx
@@ -91,7 +96,29 @@ class BundlerContoller {
    * 初始化打包消息的消费者
    * @memberof BundlerContoller
    */
-  initMessageConsumer() {}
+  static async initMessageConsumer() {
+    const gitlab = await new Consumer().getNewInstance()
+    gitlab('gitlab', 'anheng', async (msg, ch) => {
+      const result = await new GitlabService().receiveMessage(msg)
+      result && ch.ack(msg)
+    })
+
+    // const chat = await new Consumer().getNewInstance()
+    // chat('chat', 'anheng', async (msg, ch) => {
+    //   const result = await chatService.receiveMessage(msg)
+    //   result && ch.ack(msg)
+    // })
+
+    // const email = await new Consumer().getNewInstance()
+    // email('email', 'anheng', (msg, ch) => {
+    //   emailService.receiveMessage(msg, ch)
+    // })
+
+    // const note = await new Consumer().getNewInstance()
+    // note('note', 'anheng', (msg, ch) => {
+    //   noteService.receiveMessage(msg, ch)
+    // })
+  }
 }
 
 module.exports = BundlerContoller

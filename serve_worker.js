@@ -30,10 +30,6 @@ if (!fs.existsSync(path.resolve(__dirname, 'build'))) {
   fs.mkdirSync(path.resolve(__dirname, 'build'))
 }
 
-consumer().then((cons) => {
-  global.consumerInstance = cons
-})
-
 process.on('error', (error) => {
   logger.error(error)
 })
@@ -51,7 +47,7 @@ redisClient().then(client => {
   require('./service/serve_process/cache_service')(client)
 })
 // 必须这么写
-// require('./controller/serve_process/bundler_controller').initMessageConsumer()
+require('./controller/serve_process/bundler_controller').initMessageConsumer()
 require('./controller/serve_process/bundler_controller').updateView()
 require('./controller/serve_process/bundler_controller').updateDiedProcessTaskStatus()
 require('./controller/serve_process/bundler_controller').initRebuildTask()

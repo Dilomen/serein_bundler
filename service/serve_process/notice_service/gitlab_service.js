@@ -4,10 +4,35 @@ const fs = require('fs')
 const chalk = require('chalk')
 const { logger } = require('../../../log.config')
 const { copySync } = require('../../../utils/copyDir')
+const chatService = require('./chat_service')
 class GitlabService {
-  constructor(msg) {
-    this.message = JSON.parse(msg)
+  constructor() {
+    this.message = {}
     this.remoteRepoPath = ''
+  }
+
+  async receiveMessage(msg) {
+    let message = msg.content.toString()
+    this.message = JSON.parse(message)
+    
+    const messageObj = JSON.parse(message)
+    try {
+      if (messageObj.type === 'error') {
+        chatService(messageObj).then(() => {
+          return true
+        })
+      }
+      const { data = {} } = await this.push()
+      const chatMsg = data.status === 'send' ? data : messageObj
+      if (data.type === 'success') {
+        chatService(chatMsg)
+        return true
+      }
+      return false
+    } catch (err) {
+      logger.error(err)
+    }
+  
   }
 
   async push () {
@@ -28,7 +53,7 @@ class GitlabService {
       cwd: conf.remoteRepoUrl
     }
     let steps = ['git add .', `git commit -m "${commitMsg}"`, 'git push origin master']
-    const  result = await this.build(steps, options)
+    const result = await this.build(steps, options)
     return result
   }
 

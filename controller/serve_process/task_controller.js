@@ -71,7 +71,7 @@ class TaskController {
 }
 
 class Task {
-  constructor(content) {
+  constructor(content = {}) {
     const { branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage } = content
     // 打包者信息
     this.pusher = pusher // push提交者

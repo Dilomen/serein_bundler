@@ -5,8 +5,27 @@ class Consumer {
     this.queue = []
     this.exchange = []
     this.channel = channel
+    this.consumerInstance = null
     this.init()
   }
+
+  async getNewInstance() {
+    if (this.consumerInstance) return this.consumerInstance
+    const { ch } = await create()
+    this.consumerInstance = new Consumer(ch)
+    return function (Queue, Exchange, receiveQueueHandle) {
+      this.consumerInstance
+      .addQueue(Queue, Exchange)
+      .addExChange(Exchange)
+      .relation()
+      .receiveQueueMsg(receiveQueueHandle, { noAck: false })
+
+      return new Promise((resolve, reject) => {
+        this.consumerInstance ? resolve(this.consumerInstance) : reject('consumerInstance is not exist!')
+      })
+    }
+  }
+  
   init() {
     if (Consumer.instance) return Consumer.instance
     if (!this.channel) {
@@ -53,14 +72,4 @@ class Consumer {
     })
   }
 }
-// async function getInstance() {
-//   if (getInstance.instance) return Promise.resolve(getInstance.instance)
-//   return new Promise(resolve => {
-//     create(ch => {
-//       let consumer = new Consumer(ch)
-//       getInstance.instance = consumer
-//       resolve(consumer)
-//     })
-//   })
-// }
 module.exports = Consumer
