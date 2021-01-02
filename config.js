@@ -37,6 +37,7 @@ module.exports = {
     cwd: path.resolve(process.cwd(), './build'),
     maxBuffer: 1024*1024*1024,
     targeDir: 'D:\\code\\targe',
+    cacheQuantity: 100, // 缓存的文件数量
     env:{
         BASE_URL:'/',
         NODE_ENV: 'production'

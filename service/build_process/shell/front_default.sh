@@ -4,6 +4,8 @@ gitClonePath=''
 checkoutProjectPath=''
 branch=''
 cloneUrl=''
+pkgPath=''
+step=1
 while [ $# -gt 0 ];
 do
    case $1 in
@@ -19,35 +21,44 @@ do
     -clone_url) cloneUrl="$2"
        shift
        ;;
+   -pkg) pkgPath="$2"
+       shift
+       ;;
    esac
    shift
 done
 
 if [ ! -d $gitClonePath ]; then
-  echo "[1] 创建目录 $gitClonePath"
-  mkdir "$gitClonePath"
-  echo "[2] 进入目录 $gitClonePath"
-  cd "$gitClonePath"
-  echo "[3] 拉取git项目 $cloneUrl"
-  git clone "$cloneUrl"
-  echo "[4] 进入目录 $checkoutProjectPath"
-  cd "$checkoutProjectPath"
-  echo "[5] 切换分支 $branch"
-  git checkout "$branch"
-  echo "[6] 开始拉取依赖"
-  npm install
-  echo "[7] 开始打包"
-  npm run build
-  echo "[8] 打包完成"
+ echo "[$((step++))] 创建目录 $gitClonePath"
+ mkdir "$gitClonePath" || exit 1
+fi
+
+if [ ! -f $pkgPath ]; then
+  if [ "`ls -A $gitClonePath`" != "" ]; then
+   rm -rf "${gitClonePath}/*"
+  fi
+  echo "[$((step++))] 进入目录 $gitClonePath"
+  cd "$gitClonePath" || exit 1
+  echo "[$((step++))] 拉取git项目 $cloneUrl"
+  git clone "$cloneUrl" || exit 1
+  echo "[$((step++))] 进入目录 $checkoutProjectPath"
+  cd "$checkoutProjectPath" || exit 1
+  echo "[$((step++))] 切换分支 $branch"
+  git checkout "$branch" || exit 1
+  echo "[$((step++))] 开始拉取依赖"
+  npm install || exit 1
+  echo "[$((step++))] 开始打包"
+  npm run build || exit 1
+  echo "[$((step++))] 打包完成"
 else
-  echo "[1] use cache"
-  echo "[2] 进入目录 $checkoutProjectPath"
-  cd "$checkoutProjectPath"
-  echo "[3] 切换分支 $branch"
-  git checkout "$branch"
-  echo "[4] 开始拉取依赖"
-  npm install
-  echo "[5] 开始打包"
-  npm run build
-  echo "[6] 打包完成"
+  echo "[$((step++))] use cache"
+  echo "[$((step++))] 进入目录 $checkoutProjectPath"
+  cd "$checkoutProjectPath" || exit 1
+  echo "[$((step++))] 切换分支 $branch"
+  git checkout "$branch" || exit 1
+  echo "[$((step++))] 开始拉取依赖"
+  npm install || exit 1
+  echo "[$((step++))] 开始打包"
+  npm run build || exit 1
+  echo "[$((step++))] 打包完成"
 fi

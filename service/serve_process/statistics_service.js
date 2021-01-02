@@ -35,6 +35,27 @@ class StatisticsService {
     }, {})
     return results
   }
+
+  async searchPersonSummation(person) {
+    const searchSql = `
+    SELECT
+      DATE_FORMAT( create_time, '%Y%m' ) months,
+      count( * ) as total
+    FROM
+      bundler_info 
+    WHERE
+      DATE_FORMAT( create_time, '%Y%m' ) >= DATE_FORMAT( (CURDATE( ) - INTERVAL 12 MONTH),'%Y%m' )
+    AND
+      pusher='${person}'
+    GROUP BY
+      months`
+    let results = await dBUtils.search(searchSql)
+    results = results.reduce((obj, item) => {
+      obj[item.months] = item.total
+      return obj
+    }, {})
+    return results
+  }
 }
 
 module.exports = StatisticsService

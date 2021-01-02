@@ -17,6 +17,7 @@ class WorkManagerController {
     _cluster = cluster
     for (const id in _cluster.workers) {
       _cluster.workers[id].on('message', (msg) => {
+        // 打包新增或完成：更新进程信息管理状态
         if (msg.type === TYPE_ADD_BUILD || msg.type === TYPE_FINISH_BUILD) {
           for (let i = 0; i < workersManager.length; i++) {
             if (workersManager[i].workerPid === msg.workerPid) {
@@ -24,10 +25,11 @@ class WorkManagerController {
               Object.assign(workersManager[i], msg)
             }
           }
+        // 消息发送完成后，通知打包队列进行下一个打包
         } else if (msg.type === TYPE_FINISH_SEND) {
           serviceWorker.send({ type: TASKNOTICE, taskName: msg.data.taskName })
-        }
-        if (msg.type === TYPE_FILECACHE_ADD) {
+        // 打包成功，更新redis中的项目管理数据
+        } else if (msg.type === TYPE_FILECACHE_ADD) {
           serviceWorker.send({ type: FILECACHE, data: msg.data })
         }
       })
@@ -97,6 +99,9 @@ class WorkManagerController {
     })
   }
 
+  /**
+   * 中断操作，要更新进程管理状态，并向子进程发送中断通知
+   */
   static interrupt (interruptId) {
     let result = false
     for (let i = 0; i < workersManager.length; i++) {

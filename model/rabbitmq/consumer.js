@@ -6,14 +6,13 @@ class Consumer {
     this.exchange = []
     this.channel = channel
     this.consumerInstance = null
-    this.init()
   }
 
   async getNewInstance() {
     if (this.consumerInstance) return this.consumerInstance
     const { ch } = await create()
     this.consumerInstance = new Consumer(ch)
-    return function (Queue, Exchange, receiveQueueHandle) {
+    return (Queue, Exchange, receiveQueueHandle) => {
       this.consumerInstance
       .addQueue(Queue, Exchange)
       .addExChange(Exchange)

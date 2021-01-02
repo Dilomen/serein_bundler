@@ -1,6 +1,5 @@
 const TaskService = require('../../service/serve_process/task_service')
-const dayjs = require('dayjs')
-const dBUtils = require('../../utils/dbUtils')
+const { Task } = require('../../utils/types')
 class TaskController {
   constructor(ctx) {
     this._ctx = ctx
@@ -23,70 +22,13 @@ class TaskController {
     this._ctx.body = result || { code: 1, msg: '请求成功' }
   }
 
-  async reBuildTask (soloIds) {
-    if (!soloIds || soloIds.length === 0) return
-    if (typeof soloIds === 'string') {
-      soloIds = [soloIds]
-    }
-    let searchWhereSoloId = ''
-    soloIds.forEach((soloId, index) => {
-      if (index === 0) {
-        searchWhereSoloId += `bundler_info.solo_id='${soloId}'`
-      } else {
-        searchWhereSoloId += ` OR bundler_info.solo_id='${soloId}'`
-      }
-    })
-    let searchSql = `
-    SELECT 
-      branch,
-      pusher,
-      repository_name as repositoryName,
-      clone_url,
-      bundler_info.solo_id as soloId,
-      commit_id as commitId,
-      bundler_info.commit_message as commitMessage,
-      commit_time as commitTime
-    FROM 
-      bundler_info 
-    INNER JOIN 
-      commit_record 
-    ON 
-      bundler_info.solo_id=commit_record.solo_id
-    WHERE 
-      ${searchWhereSoloId}`
-    const records = await dBUtils.search(searchSql)
-    const taskService = TaskService.getInstance()
-    function dispatch(records) {
-      if (!records || records.length === 0) return
-      const record = records.pop()
-      const task = new Task(record)
-      taskService.rebuildTask({ ...task, soloId: record.soloId })
-      if (records.length === 0) return
-      setTimeout(async () => {
-        dispatch(records)
-      }, 1000)
-    }
-    dispatch(records)
-  }
-}
 
-class Task {
-  constructor(content = {}) {
-    const { branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage } = content
-    // 打包者信息
-    this.pusher = pusher // push提交者
-    this.pusherEmail = pusherEmail // push提交者邮箱
-    // 项目信息
-    this.remoteUrl = clone_url // 拉取的git地址
-    this.repositoryName = repositoryName // 项目名称
-    this.repositoryCreator = repositoryCreator // 项目创建者
-    this.branch = branch // 分支名
-    // 提交者信息
-    this.commitId = commitId // 提交id
-    this.commitPerson = commitPerson // commit提交者
-    this.commitPersonEmail = commitPersonEmail // commit提交者邮箱
-    this.commitTime = dayjs(commitTime).format('YYYY-MM-DD HH:mm:ss') // commit时间
-    this.commitMessage = commitMessage // commit注释
+  /**
+   * 服务重启时，对数据库中原本未开始打包和打包进行中的项目，进行打包处理
+   */
+  static async initRebuildTask() {
+    const taskService = TaskService.getInstance()
+    taskService.initRebuildTask()
   }
 }
 

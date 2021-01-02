@@ -28,7 +28,7 @@ class BuildService {
         this.sendStatus = BUILD_TYPE.SEND_WAIT
     }
 
-    start () {
+    async start () {
         const { branch, soloId } = this.content
         process.send({ type: TYPE_ADD_BUILD, workerPid: process.pid, soloId, projectName: this.build_dirname })
         this.updateStatus(BUILD_TYPE.BUILD_START)
@@ -36,7 +36,7 @@ class BuildService {
         try {
             this.build()
         } catch (err) {
-            console.log(err)
+            logger.error(err)
         }
         this.timer = setInterval(async () => {
             process.send({ type: UPDATE_DETAIL, data: { commitContent: this.cwdOutput, status: this.status, soloId } })
@@ -53,29 +53,18 @@ class BuildService {
             if (content.type === 'std') {
                 _self.execStdListening(content.data)
             } else if (content.type === 'success') {
-                _self.projectPath = content.data.projectPath
-                _self.execStdListening('\n打包成功')
+                _self.updateResult({ status: BUILD_TYPE.BUILD_SUCCESS, data: content.data, msg: '\n打包成功' })
+                // 通知缓存更新，同时更新redis中的项目管理数据
                 process.send({ type: TYPE_FILECACHE_ADD, data: _self.build_dirname })
-                clearInterval(_self.timer)
-                _self.updateResult({ type: BUILD_TYPE.BUILD_SUCCESS, useTime: content.data.useTime })
             } else if (content.type === 'fail') {
-                new Promise((resolve, reject) => {
+                try {
                     if (fs.existsSync(`${config.cwd}/${_self.build_dirname}`)) {
-                        setTimeout(() => {
-                            rm(`${config.cwd}/${_self.build_dirname}`, function (err) {
-                                if (err) { reject(err); logger.error(err) }
-                                resolve()
-                            })
-                        }, 10000)
-                    } else {
-                        resolve()
+                        rm.sync(`${config.cwd}/${_self.build_dirname}`)
                     }
-                }).then(() => {
-                    _self.projectPath = content.data.projectPath
-                    _self.execStdListening('\n打包失败')
-                    clearInterval(_self.timer)
-                    _self.updateResult({ type: BUILD_TYPE.BUILD_FAIL, useTime: content.data.useTime })
-                })
+                } catch (err) {
+                    logger.error(err)
+                }
+                _self.updateResult({ status: BUILD_TYPE.BUILD_FAIL, data: content.data, msg: '\n打包失败' })
             }
         })
     }
@@ -87,9 +76,13 @@ class BuildService {
     async updateStatus (status, useTime) {
         this.status = status
         const { soloId } = this.content
-        let sql_sentence
-        let sql_params
-        this.statusFactory(status)
+        let sql_sentence = ''
+        let sql_params = []
+        if ([BUILD_TYPE.SEND_FAIL, BUILD_TYPE.SEND_SUCCESS, BUILD_TYPE.SEND_START, BUILD_TYPE.SEND_WAIT].indexOf(status) === -1) {
+            this.buildStatus = status
+        } else {
+            this.sendStatus = status
+        }
         if (status === BUILD_TYPE.BUILD_SUCCESS || status === BUILD_TYPE.BUILD_FAIL) {
             sql_sentence = `
             UPDATE
@@ -117,29 +110,27 @@ class BuildService {
         process.send({ type: UPDATE_LIST_VIEW })
     }
 
-    async updateResult ({ type: status, useTime }) {
+    async updateResult ({ status, data, msg }) {
+        clearInterval(this.timer)
+        this.projectPath = data.projectPath
+        this.execStdListening(msg)
         try {
             const { pusher, commitMessage, branch, repositoryName, commitTime } = this.content
-            await this.updateStatus(status, useTime)
+            await this.updateStatus(status, data.useTime)
             // 打包结束
             process.send({ type: TYPE_FINISH_BUILD, soloId: '', projectName: '', workerPid: process.pid })
-            let buildMessage = ` @${pusher} 提交了任务\n分支名：【 *${branch}* 】\n项目名：【 *${repositoryName}* 】\n提交信息：${commitMessage}\n提交时间：${commitTime}\n打包用时： *${Math.ceil(useTime / 1000)}s*`
+            let buildMessage = ` @${pusher} 提交了任务\n分支名：【 *${branch}* 】\n项目名：【 *${repositoryName}* 】\n提交信息：${commitMessage}\n提交时间：${commitTime}\n打包用时： *${Math.ceil(data.useTime / 1000)}s*`
             this.cwdOutput = ''
             const buildPath = fs.existsSync(this.projectPath + '/dist') ? this.projectPath + '/dist' : this.projectPath + '/build'
             if (status === BUILD_TYPE.BUILD_SUCCESS) {
                 // await this.compress(buildMessage, buildPath)
-                this.MQProducer('success', { message: '【 *打包成功!* 】\n' + buildMessage, commitMsg: commitMessage, dirName: this.build_dirname, repoName: repositoryName, buildPath, branchName: branch })
-                // 打包失败
+                this.MQProducer('success', { message: '【 *打包成功!* 】\n' + buildMessage, commitMessage, repositoryName, buildPath })
             } else if (status === BUILD_TYPE.BUILD_FAIL) {
-                this.MQProducer('error', { message: '【 *打包失败！* 】\n' + buildMessage, commitMsg: commitMessage, dirName: this.build_dirname, repoName: repositoryName, buildPath })
+                this.MQProducer('error', { message: '【 *打包失败！* 】\n' + buildMessage, commitMessage, repositoryName, buildPath })
             }
         } catch (err) {
             console.log(err)
         }
-    }
-
-    statusFactory (status) {
-        [BUILD_TYPE.SEND_FAIL, BUILD_TYPE.SEND_SUCCESS, BUILD_TYPE.SEND_START, BUILD_TYPE.SEND_WAIT].indexOf(status) === -1 ? this.buildStatus = status : this.sendStatus = status
     }
 
     // 压缩
@@ -173,10 +164,14 @@ class BuildService {
         })
     }
 
+    /**
+     * 关闭工作的线程，以此关闭打包子进程
+     */
     static closeThread () {
         buildThread.terminate()
         buildThread = null
     }
+
 }
 
 module.exports = BuildService

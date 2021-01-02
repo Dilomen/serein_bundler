@@ -11,33 +11,30 @@ class GitlabService {
     this.remoteRepoPath = ''
   }
 
-  async receiveMessage(msg) {
-    let message = msg.content.toString()
+  async receiveMessage(message) {
     this.message = JSON.parse(message)
-    
-    const messageObj = JSON.parse(message)
-    try {
-      if (messageObj.type === 'error') {
-        chatService(messageObj).then(() => {
-          return true
-        })
-      }
-      const { data = {} } = await this.push()
-      const chatMsg = data.status === 'send' ? data : messageObj
-      if (data.type === 'success') {
-        chatService(chatMsg)
-        return true
-      }
-      return false
-    } catch (err) {
-      logger.error(err)
-    }
-  
+    return true
+    // try {
+    //   if (this.message.type === 'error') {
+    //     chatService(this.message).then(() => {
+    //       return true
+    //     })
+    //   }
+    //   const { data = {} } = await this.push()
+    //   const chatMsg = data.status === 'send' ? data : this.message
+    //   if (data.type === 'success') {
+    //     chatService(chatMsg)
+    //     return true
+    //   }
+    //   return false
+    // } catch (err) {
+    //   logger.error(err)
+    // }
   }
 
   async push () {
     // 路径 仓库名
-    let { repoName, commitMsg, buildPath } = this.message
+    let { repositoryName, commitMessage, buildPath } = this.message
     if (!fs.existsSync(buildPath) || !fs.existsSync(conf.remoteRepoUrl)) {
       return this.createError("找不到对应可提交的文件")
     }
@@ -48,11 +45,11 @@ class GitlabService {
     } catch(err) {
       isSuccess = false
     }
-    if (!isSuccess) return this.createError(`Project ${repoName} copy failed`)
+    if (!isSuccess) return this.createError(`Project ${repositoryName} copy failed`)
     let options = {
       cwd: conf.remoteRepoUrl
     }
-    let steps = ['git add .', `git commit -m "${commitMsg}"`, 'git push origin master']
+    let steps = ['git add .', `git commit -m "${commitMessage}"`, 'git push origin master']
     const result = await this.build(steps, options)
     return result
   }

@@ -1,6 +1,6 @@
 const BuildService = require('../../service/build_process/build_service')
 const Consumer = require('../../model/rabbitmq/consumer')
-const logger = require('../../log.config')
+const { logger } = require('../../log.config')
 class BuildController {
     /**
      * 正常webhook请求的打包
@@ -20,9 +20,9 @@ class BuildController {
         const taskConsumer = await new Consumer().getNewInstance()
         taskConsumer('task', 'dispatch', async (msg, ch) => {
             try {
-                msg = JSON.parse(msg.content.toString())
+                const message = JSON.parse(msg.content.toString())
                 const buildController = new BuildController()
-                const result = await buildController.build(msg)
+                const result = await buildController.build(message)
                 result && ch.ack(msg)
             } catch (err) {
                 logger.error(err)

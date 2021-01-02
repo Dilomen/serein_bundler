@@ -61,10 +61,16 @@ router.get('/bundler_detail', async (ctx) => {
   await bundlerController.searchDetail()
 })
 
-// 打包详情
+// 统计
 router.get('/statistics', async (ctx) => {
   const statisticsController = new StatisticsController(ctx)
   await statisticsController.searchSummation()
+})
+
+// 个人统计
+router.get('/statistics_person', async (ctx) => {
+  const statisticsController = new StatisticsController(ctx)
+  await statisticsController.searchPersonSummation()
 })
 
 module.exports = router

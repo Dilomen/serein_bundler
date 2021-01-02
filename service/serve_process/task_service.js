@@ -4,7 +4,7 @@ const { LinkedQueue } = require('../../utils/queue')
 const { logger } = require('../../log.config')
 const dBUtils = require('../../utils/dbUtils')
 const SocketHandler = require('../../utils/socket')
-const dayjs = require('dayjs')
+const { Task } = require('../../utils/types')
 const { v4: uuidv4 } = require('uuid')
 const { uniteProjectBranch } = require('../../utils/common')
 const rabbit = require('../../model/rabbitmq')
@@ -38,7 +38,7 @@ class TaskService {
     if (!commitId) return { code: 0, msg: '没有相关的提交信息' }
     // if (/^feature/i.test(ref)) return { code: 0, msg: '开发分支不打包' }
     const projectName = uniteProjectBranch(repositoryName, branch)
-    await this.insertDB(soloId)
+    await this.insertTaskToDB(soloId)
     this.taskManager.enqueue({ name: projectName, data, soloId })
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
@@ -49,7 +49,7 @@ class TaskService {
    * 重新打包
    * @param {*} data 
    */
-  async rebuildTask(data) {
+  async rebuildTask (data) {
     const sql_sentence = `
     UPDATE
       bundler_info
@@ -94,7 +94,7 @@ class TaskService {
       this.updateWorkTask(buildProject.data.name, true)
       !rabbits && (rabbits = await rabbit())
       rabbits.producer.sendQueueMsg('dispatch', buildProject.data.data, {}, (err) => {
-          if (err) { logger.error(err) }
+        if (err) { logger.error(err) }
       })
     }
   }
@@ -102,7 +102,7 @@ class TaskService {
   /**
    * 更新工作的任务
    * @param {*} taskName
-   * @param {Boolean} value false表示空闲
+   * @param {Boolean} value false表示有进程的任务完成了或者被取消了等
    */
   updateWorkTask (taskName, value) {
     if (!value) {
@@ -121,8 +121,11 @@ class TaskService {
     this.dispatch(false, taskName)
   }
 
-  async insertDB (soloId) {
-    let { branch, repositoryName, remoteUrl, commitId, commitPerson, commitPersonEmail, commitTime, commitMessage, pusher } = this.content
+  /**
+   * 将新增的任务添加到数据库
+   */
+  async insertTaskToDB (soloId) {
+    let { branch, repositoryName, cloneUrl, commitId, commitPerson, commitPersonEmail, commitTime, commitMessage, pusher } = this.content
     const sql_sentence = `
     INSERT INTO 
       bundler_info(solo_id, branch, build_status, send_status, repository_name, pusher, commit_message) 
@@ -135,14 +138,67 @@ class TaskService {
       commit_record(solo_id, clone_url, commit_id, commit_person, commit_person_email, commit_time, commit_message) 
     VALUES
       (?,?,?,?,?,?,?)`;
-    const sql_commit_params = [soloId, remoteUrl, commitId, commitPerson, commitPersonEmail, commitTime, commitMessage];
+    const sql_commit_params = [soloId, cloneUrl, commitId, commitPerson, commitPersonEmail, commitTime, commitMessage];
     await dBUtils.insertField(sql_commit_sentence, sql_commit_params)
   }
 
-  cancalTask(cancelId) {
+  /**
+   * 取消在等待队列中的任务
+   */
+  cancalTask (cancelId) {
     let taskResult = this.taskManager.removeId(cancelId)
     !taskResult && (taskResult = this.noticeTackManager.removeId(cancelId))
     return !!taskResult
+  }
+
+
+  /**
+   * 服务重启时，对数据库中原本未开始打包和打包进行中的项目，进行打包处理
+   */
+  async initRebuildTask () {
+    const records = await this.searchNoFinishTask()
+    const _self = this
+    if (!records || records.length === 0) return
+    function _dispatch (records) {
+      if (!records || records.length === 0) return
+      const record = records.pop()
+      const task = new Task(record)
+      _self.rebuildTask({ ...task, soloId: record.soloId })
+      if (records.length === 0) return
+      setTimeout(async () => {
+        _dispatch(records)
+      }, 1000)
+    }
+    _dispatch(records)
+  }
+
+  /**
+   * 查询未完成打包的任务
+   */
+  async searchNoFinishTask () {
+    let searchSql = `
+    SELECT 
+      branch,
+      pusher,
+      repository_name as repositoryName,
+      clone_url,
+      bundler_info.solo_id as soloId,
+      commit_id as commitId,
+      bundler_info.commit_message as commitMessage,
+      commit_time as commitTime
+    FROM 
+      bundler_info 
+    INNER JOIN 
+      commit_record 
+    ON 
+      bundler_info.solo_id=commit_record.solo_id
+    WHERE 
+      build_status='1' OR build_status='2'
+    ORDER BY
+      create_time
+    DESC`
+    let result = await dBUtils.search(searchSql)
+    return result
   }
 }
 

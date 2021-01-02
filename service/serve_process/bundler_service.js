@@ -7,6 +7,8 @@ const fs = require('fs')
 const rabbit = require('../../model/rabbitmq')
 const path = require('path')
 const { logger } = require('../../log.config')
+const config = require('../../config')
+const rm = require('rimraf')
 const { INTERRUPT } = require('../../utils/types')
 const throttle = require('../../utils/throttle')
 const { UPDATE_VIEW, UPDATE_LIST_VIEW, BUILD_TYPE, TYPE_FINISH_SEND, getStatusShow } = require('../../utils/types')
@@ -23,6 +25,10 @@ class BuildService {
       pusher // 提交人
     }
     let paramsStr = ''
+    params = Object.keys(params).reduce((obj, key) => {
+      if (params[key]) obj[key] = params[key]
+      return obj
+    }, {})
     Object.keys(params).forEach((key, index) => {
       if (params[key]) {
         paramsStr += index === Object.keys(params).length - 1 ? `${key} like '%${params[key]}%'` : `${key} like '%${params[key]}%' AND `
@@ -30,20 +36,22 @@ class BuildService {
     })
     const sum = limit * (offset - 1)
     let searchSql = ''
-    const [startTime, endTime] = this.content['commitTime[]'] || [] // 提交时间间隔
+    const [startTime, endTime] = this.content['createTime[]'] || [] // 提交时间间隔
     if (startTime && endTime) {
       searchSql = `
       SELECT * FROM 
-        bundler_info 
+        bundler_info
       WHERE 
-        ${paramsStr ? paramsStr + 'AND' : ''} commit_time 
+        ${paramsStr ? paramsStr + 'AND' : ''}
+        create_time 
       BETWEEN 
         '${startTime}' 
       AND 
         '${endTime}' 
       ORDER BY 
         create_time 
-      DESC LIMIT 
+      DESC
+      LIMIT 
         ${sum},${limit};`
     } else {
       searchSql = `
@@ -51,7 +59,8 @@ class BuildService {
         ${paramsStr ? 'WHERE ' + paramsStr : ''} 
       ORDER BY 
         create_time 
-      DESC LIMIT
+      DESC
+      LIMIT
         ${sum},${limit};`
     }
     let results = await dBUtils.search(searchSql)
@@ -59,12 +68,30 @@ class BuildService {
     results.map(item => {
       item.statusShow = getStatusShow(item.buildStatus, item.sendStatus)
     })
-    const totalResult = await dBUtils.search(`
-      SELECT
-        COUNT(*) AS total
-      FROM 
-        bundler_info 
-      ${paramsStr ? 'WHERE ' + paramsStr : ''}`)
+    let searhTotal = ''
+    if (startTime && endTime) {
+      searhTotal = `
+        SELECT
+          COUNT(*) AS total
+        FROM 
+          bundler_info
+        WHERE
+          ${paramsStr ? paramsStr + 'AND' : ''}
+          create_time 
+        BETWEEN 
+          '${startTime}' 
+        AND 
+          '${endTime}'
+        `
+    } else {
+      searhTotal = `
+        SELECT
+          COUNT(*) AS total
+        FROM 
+          bundler_info
+        ${paramsStr ? 'WHERE ' + paramsStr : ''}`
+    }
+    const totalResult = await dBUtils.search(searhTotal)
     return {
       total: totalResult[0].total,
       data: results,

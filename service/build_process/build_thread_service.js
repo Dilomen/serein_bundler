@@ -16,7 +16,8 @@ function build ({ projectPath, buildDirname, content: { repositoryName, cloneUrl
   const gitClonePath = path.resolve(config.cwd, buildDirname)
   // 拉取下来地址中的项目地址
   const checkoutProjectPath = path.resolve(config.cwd, buildDirname, repositoryName)
-  const child = executeFile(shellPath, ['-gp', gitClonePath, '-cpp', checkoutProjectPath, '-clone_url', cloneUrl, '-branch', branch], null, null, (msg) => {
+  const pkgPath = path.resolve(gitClonePath, repositoryName, 'package.json')
+  const child = executeFile(shellPath, ['-gp', gitClonePath, '-cpp', checkoutProjectPath, '-clone_url', cloneUrl, '-branch', branch, '-pkg', pkgPath], null, null, (msg) => {
     parentPort.postMessage({ data: decode(msg), type: 'std' })
   })
   child.then((code) => {

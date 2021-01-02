@@ -6,21 +6,20 @@ const { logger } = require('../../log.config')
 
 async function cacheFile (client) {
   client.get('fileChache', (err, res) => {
+    if (err) { logger.error(err); return }
     let fileCacheArr = []
     try {
       fileCacheArr = JSON.parse(res)
     } catch(err) {
-      logger.error('Redis fileCacheArr 不是一个数组')
+      logger.error('fileChache Error: ', err)
     }
     fileCacheArr = Array.isArray(fileCacheArr) ? fileCacheArr : []
     const fileCache = new LRUCache(fileCacheArr)
     fileCache.on('remove', (deleteName) => {
       if (!fs.existsSync(`${config.cwd}/${deleteName}`)) return
-      setTimeout(() => {
-        rm(`${config.cwd}/${deleteName}`, function (err) {
-          if (err) logger.error(err)
-        })
-      }, 10000)
+      rm(`${config.cwd}/${deleteName}`, function (err) {
+        if (err) logger.error(err)
+      })
     })
     process.on('message', (msg) => {
       if (msg.type === FILECACHE) {
@@ -32,7 +31,7 @@ async function cacheFile (client) {
 
 class LRUCache {
   constructor(fileCacheArr) {
-    this.capacity = 100
+    this.capacity = config.cacheQuantity || 100 // 最多缓存几个项目
     this.fileNamePath = fileCacheArr || []
     this.listener = {}
   }
