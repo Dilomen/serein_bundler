@@ -40,7 +40,7 @@ class BuildService {
         }
         this.timer = setInterval(async () => {
             process.send({ type: UPDATE_DETAIL, data: { commitContent: this.cwdOutput, status: this.status, soloId } })
-        }, 1000)
+        }, 2000)
     }
 
     build () {

@@ -157,19 +157,18 @@ class TaskService {
    */
   async initRebuildTask () {
     const records = await this.searchNoFinishTask()
-    const _self = this
     if (!records || records.length === 0) return
     function _dispatch (records) {
       if (!records || records.length === 0) return
       const record = records.pop()
       const task = new Task(record)
-      _self.rebuildTask({ ...task, soloId: record.soloId })
+      this.rebuildTask({ ...task, soloId: record.soloId })
       if (records.length === 0) return
       setTimeout(async () => {
-        _dispatch(records)
+        _dispatch.call(this, records)
       }, 1000)
     }
-    _dispatch(records)
+    _dispatch.call(this, records)
   }
 
   /**

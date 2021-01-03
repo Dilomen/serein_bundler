@@ -63,7 +63,7 @@ class WorkManagerController {
     })
     serviceWorker.on('message', (msg) => {
       if (msg.type === INTERRUPT) {
-        serviceWorker.send({ type: INTERRUPT, result: WorkManagerController.interrupt(msg.data) })
+        serviceWorker.send({ type: INTERRUPT, result: WorkManagerController.interrupt(msg.data.soloId), data: msg.data  })
       }
     })
   }

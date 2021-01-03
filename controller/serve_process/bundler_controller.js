@@ -5,7 +5,7 @@ const BundlerService = require('../../service/serve_process/bundler_service')
 const TaskService = require('../../service/serve_process/task_service')
 const jwt = require('jsonwebtoken')
 const SocketHandler = require('../../utils/socket')
-const { TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS } = require('../../utils/types')
+const { TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS, INTERRUPT, UPDATE_LIST_VIEW } = require('../../utils/types')
 const Consumer = require('../../model/rabbitmq/consumer')
 // const chatService = require('../../service/serve_process/notice_service/chat_service')
 const GitlabService = require('../../service/serve_process/notice_service/gitlab_service')
@@ -76,7 +76,7 @@ class BundlerContoller {
   /**
    * 初始化打包消息的消费者
    */
-  static async initMessageConsumer() {
+  static async initMessageConsumer () {
     const gitlab = await new Consumer().getNewInstance()
     gitlab('gitlab', 'anheng', async (msg, ch) => {
       const message = msg.content.toString()
@@ -99,6 +99,15 @@ class BundlerContoller {
     // note('note', 'anheng', (msg, ch) => {
     //   noteService.receiveMessage(msg, ch)
     // })
+  }
+
+  static async initIntrruptListen () {
+    process.on('message', async (msg) => {
+      if (msg.type === INTERRUPT && msg.result) {
+        const bundlerService = new BundlerService()
+        await bundlerService.interruptSuccess(msg.data)
+      }
+    })
   }
 }
 

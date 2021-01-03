@@ -47,6 +47,7 @@ redisClient().then(client => {
 })
 // 必须这么写
 require('./controller/serve_process/bundler_controller').initMessageConsumer()
+require('./controller/serve_process/bundler_controller').initIntrruptListen()
 require('./controller/serve_process/bundler_controller').updateView()
 require('./controller/serve_process/bundler_controller').updateDiedProcessTaskStatus()
 require('./controller/serve_process/task_controller').initRebuildTask()

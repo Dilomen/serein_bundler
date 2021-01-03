@@ -7,11 +7,10 @@ const fs = require('fs')
 const rabbit = require('../../model/rabbitmq')
 const path = require('path')
 const { logger } = require('../../log.config')
-const config = require('../../config')
-const rm = require('rimraf')
 const { INTERRUPT } = require('../../utils/types')
 const throttle = require('../../utils/throttle')
 const { UPDATE_VIEW, UPDATE_LIST_VIEW, BUILD_TYPE, TYPE_FINISH_SEND, getStatusShow } = require('../../utils/types')
+let isInitBindInterrupt = true
 class BuildService {
   constructor(content = {}) {
     this.content = content
@@ -119,34 +118,21 @@ class BuildService {
     return resResult
   }
 
-  async interrupt ({ interruptId, branch, repositoryName }) {
+  async interrupt ({ interruptId: soloId, branch, repositoryName }) {
     let isExistTask = false
     // 如果不是进行中的，那么就是等待队列中取消
     const taskService = TaskService.getInstance()
-    isExistTask = taskService.cancalTask(interruptId)
+    isExistTask = taskService.cancalTask(soloId)
     if (isExistTask) {
-      await this._handleInterruptSuccess({ interruptId, isNoticeDispatch: false })
+      await this.interruptSuccess({ soloId, branch, repositoryName, isNoticeDispatch: false })
       return { code: 1, msg: '中断成功' }
     }
 
-    return new Promise((resolve) => {
-      process.send({ type: INTERRUPT, data: interruptId })
-      // 节流：防止执行多次中断操作
-      const interruptNotice = throttle(async (msg, resolve) => {
-        if (msg.result) {
-          await this._handleInterruptSuccess({ interruptId, branch, repositoryName, isNoticeDispatch: true })
-          resolve({ code: 1, msg: '中断成功' })
-          return
-        }
-        resolve({ code: 0, msg: '无法停止当前打包' })
-      }, 500)
-      process.on('message', async (msg) => {
-        interruptNotice(msg, resolve)
-      })
-    })
+    process.send({ type: INTERRUPT, data: { soloId, branch, repositoryName, isNoticeDispatch: true } })
+    return { code: 1, msg: '中断进行中' }
   }
 
-  async  _handleInterruptSuccess ({ interruptId, branch, repositoryName, isNoticeDispatch }) {
+  async interruptSuccess ({ soloId, branch, repositoryName, isNoticeDispatch }) {
     // 是否通知派发任务，如果是中断未开始的任务，就不需要通知，如果是进行中的任务，就通知
     if (isNoticeDispatch) {
       const projectName = uniteProjectBranch(repositoryName, branch)
@@ -159,9 +145,9 @@ class BuildService {
             build_status = ?, send_status = ? 
           WHERE 
             solo_id = ?`;
-    const sql_params = [BUILD_TYPE.BUILD_CANCEL, BUILD_TYPE.BUILD_CANCEL, interruptId];
+    const sql_params = [BUILD_TYPE.BUILD_CANCEL, BUILD_TYPE.BUILD_CANCEL, soloId];
     await dBUtils.updateField(sql_sentence, sql_params)
-    SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId: interruptId })
+    SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
   }
 

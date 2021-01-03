@@ -1,5 +1,4 @@
 #!/bin/bash
-
 gitClonePath=''
 checkoutProjectPath=''
 branch=''
@@ -28,37 +27,37 @@ do
    shift
 done
 
-if [ ! -d $gitClonePath ]; then
- echo "[$((step++))] 创建目录 $gitClonePath"
- mkdir "$gitClonePath" || exit 1
-fi
-
-if [ ! -f $pkgPath ]; then
-  if [ "`ls -A $gitClonePath`" != "" ]; then
-   rm -rf "${gitClonePath}/*"
+# 如果项目下的package.json不存在，说明项目不存在
+if [ ! -f "${checkoutProjectPath}/package.json" ]; then
+  # 查看项目文件夹是否存在，如果存在，就删除文件夹
+  if [ -d $gitClonePath ]; then
+    echo "[$((step++))] 删除项目文件夹"
+    rm -rf "${gitClonePath}" || exit 1
   fi
-  echo "[$((step++))] 进入目录 $gitClonePath"
+  echo "[$((step++))] 创建项目文件夹"
+  mkdir "$gitClonePath" || exit 1
+  echo "[$((step++))] 进入项目文件夹"
   cd "$gitClonePath" || exit 1
   echo "[$((step++))] 拉取git项目 $cloneUrl"
   git clone "$cloneUrl" || exit 1
-  echo "[$((step++))] 进入目录 $checkoutProjectPath"
-  cd "$checkoutProjectPath" || exit 1
-  echo "[$((step++))] 切换分支 $branch"
-  git checkout "$branch" || exit 1
-  echo "[$((step++))] 开始拉取依赖"
-  npm install || exit 1
-  echo "[$((step++))] 开始打包"
-  npm run build || exit 1
-  echo "[$((step++))] 打包完成"
 else
   echo "[$((step++))] use cache"
-  echo "[$((step++))] 进入目录 $checkoutProjectPath"
-  cd "$checkoutProjectPath" || exit 1
-  echo "[$((step++))] 切换分支 $branch"
-  git checkout "$branch" || exit 1
-  echo "[$((step++))] 开始拉取依赖"
-  npm install || exit 1
-  echo "[$((step++))] 开始打包"
-  npm run build || exit 1
-  echo "[$((step++))] 打包完成"
 fi
+
+
+echo "[$((step++))] 进入目录 $checkoutProjectPath"
+cd "$checkoutProjectPath" || exit 1
+
+if [ -f "${checkoutProjectPath}/.git/index.lock" ]; then
+  rm -f "${checkoutProjectPath}/.git/index.lock" || exit 1
+fi
+
+echo "[$((step++))] 切换分支 $branch"
+git checkout "$branch" || exit 1
+
+echo "[$((step++))] 开始拉取依赖"
+npm install || exit 1
+
+echo "[$((step++))] 开始打包"
+npm run build || exit 1
+echo "[$((step++))] 打包完成"
