@@ -8,10 +8,8 @@ const rabbit = require('../../model/rabbitmq')
 const path = require('path')
 const { logger } = require('../../log.config')
 const { INTERRUPT } = require('../../utils/types')
-const throttle = require('../../utils/throttle')
 const { UPDATE_VIEW, UPDATE_LIST_VIEW, BUILD_TYPE, TYPE_FINISH_SEND, getStatusShow } = require('../../utils/types')
-let isInitBindInterrupt = true
-class BuildService {
+class BundlerService {
   constructor(content = {}) {
     this.content = content
   }
@@ -186,4 +184,4 @@ class BuildService {
   }
 }
 
-module.exports = BuildService
+module.exports = BundlerService

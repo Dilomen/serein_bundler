@@ -1,4 +1,3 @@
-const rm = require('rimraf')
 const config = require('../../config')
 const path = require('path')
 const fs = require('fs')
@@ -12,7 +11,7 @@ const rabbit = require('../../model/rabbitmq')
 const { Worker } = require('worker_threads');
 const { uniteProjectBranch } = require('../../utils/common')
 const threadServicePath = path.resolve(__dirname, './build_thread_service.js')
-let buildThread = new Worker(threadServicePath, {});
+const buildThreadMap = new Map()
 const { UPDATE_DETAIL, UPDATE_VIEW, UPDATE_LIST_VIEW, TYPE_ADD_BUILD, TYPE_FINISH_BUILD, TYPE_FILECACHE_ADD, TYPE_FINISH_SEND, BUILD_TYPE } = require('../../utils/types')
 
 class BuildService {
@@ -44,9 +43,9 @@ class BuildService {
     }
 
     build () {
-        if (!buildThread) {
-            buildThread = new Worker(threadServicePath, {});
-        }
+        const { soloId } = this.content
+        const buildThread = new Worker(threadServicePath, {});
+        buildThreadMap.set(soloId, { thread: buildThread });
         buildThread.postMessage({ projectPath: this.projectPath, buildDirname: this.build_dirname, content: this.content })
         const _self = this
         buildThread.on('message', function (content) {
@@ -57,13 +56,6 @@ class BuildService {
                 // 通知缓存更新，同时更新redis中的项目管理数据
                 process.send({ type: TYPE_FILECACHE_ADD, data: _self.build_dirname })
             } else if (content.type === 'fail') {
-                try {
-                    if (fs.existsSync(`${config.cwd}/${_self.build_dirname}`)) {
-                        rm.sync(`${config.cwd}/${_self.build_dirname}`)
-                    }
-                } catch (err) {
-                    logger.error(err)
-                }
                 _self.updateResult({ status: BUILD_TYPE.BUILD_FAIL, data: content.data, msg: '\n打包失败' })
             }
         })
@@ -100,7 +92,8 @@ class BuildService {
             if (!fs.existsSync(commitConentPath)) {
                 fs.mkdirSync(commitConentPath)
             }
-            fs.writeFileSync(path.join(commitConentPath, `/${soloId}.log`), this.cwdOutput, { encoding: 'utf-8' })
+            const writeStream = fs.createWriteStream(path.join(commitConentPath, `/${soloId}.log`), { encoding: "utf8", start: 0 });
+            writeStream.write(this.cwdOutput)
         } else {
             sql_sentence = 'UPDATE bundler_info SET build_status = ?, send_status = ? WHERE solo_id = ?'
             sql_params = [this.buildStatus, this.sendStatus, soloId]
@@ -115,7 +108,8 @@ class BuildService {
         this.projectPath = data.projectPath
         this.execStdListening(msg)
         try {
-            const { pusher, commitMessage, branch, repositoryName, commitTime } = this.content
+            const { pusher, commitMessage, branch, repositoryName, commitTime, soloId } = this.content
+            BuildService.closeThread(soloId)
             await this.updateStatus(status, data.useTime)
             // 打包结束
             process.send({ type: TYPE_FINISH_BUILD, soloId: '', projectName: '', workerPid: process.pid })
@@ -129,7 +123,7 @@ class BuildService {
                 this.MQProducer('error', { message: '【 *打包失败！* 】\n' + buildMessage, commitMessage, repositoryName, buildPath })
             }
         } catch (err) {
-            console.log(err)
+            logger.error(err)
         }
     }
 
@@ -167,9 +161,9 @@ class BuildService {
     /**
      * 关闭工作的线程，以此关闭打包子进程
      */
-    static closeThread () {
-        buildThread.terminate()
-        buildThread = null
+    static closeThread (soloId) {
+        buildThreadMap.get(soloId).thread.terminate()
+        buildThreadMap.delete(soloId)
     }
 
 }

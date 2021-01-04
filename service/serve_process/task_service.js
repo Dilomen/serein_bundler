@@ -42,7 +42,9 @@ class TaskService {
     this.taskManager.enqueue({ name: projectName, data, soloId })
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
-    this.dispatch(true)
+    setTimeout(() => {
+      this.dispatch(true)
+    })
   }
 
   /**
@@ -63,7 +65,9 @@ class TaskService {
     this.taskManager.enqueue({ name: projectName, data, soloId: data.soloId })
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId: data.soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
-    this.dispatch(true)
+    setTimeout(() => {
+      this.dispatch(true)
+    })
   }
 
   /**

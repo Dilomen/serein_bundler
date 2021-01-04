@@ -1,5 +1,6 @@
 const { logger } = require('./log.config')
-const buildService = require('./service/build_process/build_service')
+const BuildService = require('./service/build_process/build_service')
+const { INTERRUPT } = require('./utils/types')
 require('./controller/build_process/build_controller').initTaskConsumer()
 
 process.on('error', (error) => {
@@ -18,9 +19,10 @@ setInterval(() => {
     process.exit(1)
   }
 }, 4000)
+
 process.on('message', (msg) => {
-  if (msg === 'interrupt') {
-    buildService.closeThread()
+  if (msg.type === INTERRUPT) {
+    BuildService.closeThread(msg.soloId)
   }
   if (msg === 'ping') {
     process.send('pong')

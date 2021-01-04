@@ -107,7 +107,7 @@ class WorkManagerController {
     for (let i = 0; i < workersManager.length; i++) {
       const soloId = workersManager[i].soloId
       if (soloId && (soloId === interruptId)) {
-        _cluster.workers[workersManager[i].workerId].send('interrupt')
+        _cluster.workers[workersManager[i].workerId].send({ type: INTERRUPT, soloId: interruptId })
         workersManager[i].soloId = ''
         workersManager[i].projectName = ''
         result = true

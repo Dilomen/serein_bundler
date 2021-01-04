@@ -42,7 +42,7 @@ module.exports = {
         BASE_URL:'/',
         NODE_ENV: 'production'
     },
-    processSize: os.cpus().length - 8 > 0 ? os.cpus().length - 7 : 1,
+    processSize: os.cpus().length - 7 > 0 ? os.cpus().length - 7 : 1,
     // processSize: 1,
     remoteRepoName: 'remote_repo',
     remoteRepoUrl: path.resolve(process.cwd(), 'remote_repo'),
