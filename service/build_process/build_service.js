@@ -21,7 +21,6 @@ class BuildService {
         this.build_dirname = uniteProjectBranch(repositoryName, branch)
         this.projectPath = config.cwd
         this.cwdOutput = ''
-        this.timer = null
         this.status = BUILD_TYPE.BUILD_WAIT
         this.buildStatus = BUILD_TYPE.BUILD_WAIT
         this.sendStatus = BUILD_TYPE.SEND_WAIT
@@ -32,14 +31,12 @@ class BuildService {
         process.send({ type: TYPE_ADD_BUILD, workerPid: process.pid, soloId, projectName: this.build_dirname })
         this.updateStatus(BUILD_TYPE.BUILD_START)
         this.execStdListening('开始打包: branch: ' + branch + '\nplatform: ' + process.platform + '\n')
+        process.send({ type: UPDATE_DETAIL, data: { commitContent: this.cwdOutput, status: this.status, soloId } })
         try {
             this.build()
         } catch (err) {
             logger.error(err)
         }
-        this.timer = setInterval(async () => {
-            process.send({ type: UPDATE_DETAIL, data: { commitContent: this.cwdOutput, status: this.status, soloId } })
-        }, 2000)
     }
 
     build () {
@@ -58,6 +55,7 @@ class BuildService {
             } else if (content.type === 'fail') {
                 _self.updateResult({ status: BUILD_TYPE.BUILD_FAIL, data: content.data, msg: '\n打包失败' })
             }
+            process.send({ type: UPDATE_DETAIL, data: { commitContent: _self.cwdOutput, status: _self.status, soloId } })
         })
     }
 
@@ -104,7 +102,6 @@ class BuildService {
     }
 
     async updateResult ({ status, data, msg }) {
-        clearInterval(this.timer)
         this.projectPath = data.projectPath
         this.execStdListening(msg)
         try {
@@ -144,7 +141,6 @@ class BuildService {
                 })
             })
         })
-
     }
 
     async MQProducer (type, content) {

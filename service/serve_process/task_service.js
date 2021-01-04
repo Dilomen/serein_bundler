@@ -38,11 +38,11 @@ class TaskService {
     if (!commitId) return { code: 0, msg: '没有相关的提交信息' }
     // if (/^feature/i.test(ref)) return { code: 0, msg: '开发分支不打包' }
     const projectName = uniteProjectBranch(repositoryName, branch)
-    await this.insertTaskToDB(soloId)
-    this.taskManager.enqueue({ name: projectName, data, soloId })
-    SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
-    SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
-    setTimeout(() => {
+    setTimeout(async () => {
+      await this.insertTaskToDB(soloId)
+      this.taskManager.enqueue({ name: projectName, data, soloId })
+      SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
+      SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
       this.dispatch(true)
     })
   }
@@ -65,9 +65,7 @@ class TaskService {
     this.taskManager.enqueue({ name: projectName, data, soloId: data.soloId })
     SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId: data.soloId })
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
-    setTimeout(() => {
-      this.dispatch(true)
-    })
+    this.dispatch(true)
   }
 
   /**
