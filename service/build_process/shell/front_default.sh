@@ -17,7 +17,7 @@ do
     -branch) branch="$2"
        shift
        ;;
-    -clone_url) cloneUrl="$2"
+    -clone) cloneUrl="$2"
        shift
        ;;
    -pkg) pkgPath="$2"

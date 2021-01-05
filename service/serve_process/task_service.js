@@ -44,7 +44,7 @@ class TaskService {
       SocketHandler.getInstance().emit(UPDATE_VIEW, { soloId })
       SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
       this.dispatch(true)
-    })
+    }, 10)
   }
 
   /**

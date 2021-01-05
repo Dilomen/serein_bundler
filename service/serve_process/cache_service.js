@@ -41,15 +41,14 @@ class LRUCache {
     let fileIndex = this.fileNamePath.lastIndexOf(filename)
     if (fileIndex !== -1) {
       this.fileNamePath.splice(fileIndex, 1)
-      this.fileNamePath.push(filename)
     } else {
       // 如果满了，就删除链头
       if (this.isFull()) {
         const head = this.fileNamePath.shift()
         this.emit('remove', head)
       }
-      this.fileNamePath.push(filename)
     }
+    this.fileNamePath.push(filename)
     client.set('fileChache', JSON.stringify(this.fileNamePath))
   }
 

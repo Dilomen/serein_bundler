@@ -7,10 +7,10 @@ const jwt = require('jsonwebtoken')
 const SocketHandler = require('../../utils/socket')
 const { TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS, INTERRUPT } = require('../../utils/types')
 const Consumer = require('../../model/rabbitmq/consumer')
-// const chatService = require('../../service/serve_process/notice_service/chat_service')
+// const ChatService = require('../../service/serve_process/notice_service/chat_service')
 const GitlabService = require('../../service/serve_process/notice_service/gitlab_service')
-// const noteService = require('../../service/serve_process/notice_service/note_service')
-// const emailService = require('../../service/serve_process/notice_service/email_service')
+// const NoteService = require('../../service/serve_process/notice_service/note_service')
+// const EmailService = require('../../service/serve_process/notice_service/email_service')
 class BundlerContoller {
   constructor(ctx) {
     this._ctx = ctx
@@ -86,18 +86,23 @@ class BundlerContoller {
 
     // const chat = await new Consumer().getNewInstance()
     // chat('chat', 'anheng', async (msg, ch) => {
-    //   const result = await chatService.receiveMessage(msg)
+    //   const message = msg.content.toString()
+    //   const result = await new ChatService().receiveMessage(message)
     //   result && ch.ack(msg)
     // })
 
     // const email = await new Consumer().getNewInstance()
-    // email('email', 'anheng', (msg, ch) => {
-    //   emailService.receiveMessage(msg, ch)
+    // email('email', 'anheng', async (msg, ch) => {
+    //   const message = msg.content.toString()
+    //   const result = await new EmailService().receiveMessage(message)
+    //   result && ch.ack(msg)
     // })
 
     // const note = await new Consumer().getNewInstance()
-    // note('note', 'anheng', (msg, ch) => {
-    //   noteService.receiveMessage(msg, ch)
+    // note('note', 'anheng', async (msg, ch) => {
+    //   const message = msg.content.toString()
+    //   const result = await new NoteService().receiveMessage(message)
+    //   result && ch.ack(msg)
     // })
   }
 
