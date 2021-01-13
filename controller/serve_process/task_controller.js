@@ -13,11 +13,25 @@ class TaskController {
     this.content = this._ctx.request.body || {}
     let { ref = '', commits = [] } = this.content
     const branch = ref.replace('refs/heads/', '')
-    const { name: pusher = '', email: pusherEmail = '' } = (this.content.pusher || {})
-    const { clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
-    const { id: commitId = '', committer: { username: commitPerson = '', email: commitPersonEmail = '' } = {}, timestamp: commitTime = '', message: commitMessage } = (commits[commits.length - 1] || {})
+    let task = null
+    if (this._ctx.header['x-gitlab-token']) {
+      const { user_username: pusher = '', user_email: pusherEmail } = (this.content || [])
+      const { git_ssh_url: clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
+      const { id: commitId = '', author: { name: commitPerson = '', email: commitPersonEmail = '' } = {}, timestamp: commitTime = '', message: commitMessage } = (commits[commits.length - 1] || {})
+      task = new Task({ branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage })
+    } else if (this._ctx.header['x-gogs-signature']) {
+      const { username: pusher = '', email: pusherEmail = '' } = (this.content.pusher || {})
+      const { ssh_url: clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
+      const { id: commitId = '', author: { name: commitPerson = '', email: commitPersonEmail = '' } = {}, timestamp: commitTime = '', message: commitMessage } = (commits[commits.length - 1] || {})
+      task = new Task({ branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage })
+    } else {
+      const { name: pusher = '', email: pusherEmail = '' } = (this.content.pusher || {})
+      const { ssh_url: clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
+      const { id: commitId = '', committer: { username: commitPerson = '', email: commitPersonEmail = '' } = {}, timestamp: commitTime = '', message: commitMessage } = (commits[commits.length - 1] || {})
+      task = new Task({ branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage })
+    }
+    if (!task) return
     const taskService = TaskService.getInstance()
-    const task = new Task({ branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage })
     const result = await taskService.addTask(task)
     this._ctx.body = result || { code: 1, msg: '请求成功' }
   }

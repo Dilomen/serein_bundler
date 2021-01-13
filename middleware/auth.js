@@ -3,9 +3,9 @@ const jwt = require('jsonwebtoken')
 module.exports = () => {
   return async (ctx, next) => {
     if (ctx.path === '/webhook') {
-      let Signature = ctx.header['x-gogs-signature'] || ''
+      let Signature = ctx.header['x-gitlab-token'] || ctx.header['x-gogs-signature'] || ctx.header['x-hub-signature'] || ''
       if (!Signature) {
-        ctx.status = 500
+        ctx.status = 401
         ctx.body = { msg: '非法请求，没有权限', code: 0 }
         return
       }
