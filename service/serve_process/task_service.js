@@ -34,10 +34,14 @@ class TaskService {
     const soloId = uuidv4()
     data.soloId = soloId
     this.content = data
-    let { repositoryName, commitId, branch } = data
+    let { repositoryName, commitId, branch, pusher, cloneUrl } = data
     if (!commitId) return { code: 0, msg: '没有相关的提交信息' }
     // if (/^feature/i.test(ref)) return { code: 0, msg: '开发分支不打包' }
     const projectName = uniteProjectBranch(repositoryName, branch)
+    const searchSql = `SELECT password FROM user WHERE user_name='${pusher}'`
+    const result = await dBUtils.search(searchSql) || []
+    if (!result || result.length === 0) return
+    data.cloneUrl = cloneUrl.replace(/(https*:\/\/)/, `$1${pusher}:${result[0].password}@`)
     setTimeout(async () => {
       await this.insertTaskToDB(soloId)
       this.taskManager.enqueue({ name: projectName, data, soloId })

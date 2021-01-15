@@ -54,7 +54,7 @@ require('./controller/serve_process/task_controller').initRebuildTask()
 app.use(router.routes())
   .use(router.allowedMethods())
   .use(static('public/views'))
-const port = 8081
+const port = 8082
 module.exports = server.listen(port, () => {
   console.log('Listen http://localhost:' + port)
 })

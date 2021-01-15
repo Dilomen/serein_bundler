@@ -25,10 +25,10 @@ class WorkManagerController {
               Object.assign(workersManager[i], msg)
             }
           }
-        // 消息发送完成后，通知打包队列进行下一个打包
+          // 消息发送完成后，通知打包队列进行下一个打包
         } else if (msg.type === TYPE_FINISH_SEND) {
           serviceWorker.send({ type: TASKNOTICE, taskName: msg.data.taskName })
-        // 打包成功，更新redis中的项目管理数据
+          // 打包成功，更新redis中的项目管理数据
         } else if (msg.type === TYPE_FILECACHE_ADD) {
           serviceWorker.send({ type: FILECACHE, data: msg.data })
         }
@@ -57,13 +57,14 @@ class WorkManagerController {
    */
   static initServiceWorker () {
     // execArgv 可以传入指定调试的端口号
-    serviceWorker = childProcess.fork(path.resolve(process.cwd(), './serve_worker.js'), [], { execArgv: ['--inspect=8081'] })
+    // serviceWorker = childProcess.fork(path.resolve(process.cwd(), './serve_worker.js'), [], { execArgv: ['--inspect=8081'] })
+    serviceWorker = childProcess.fork(path.resolve(process.cwd(), './serve_worker.js'))
     serviceWorker.on('exit', () => {
       serviceWorker = childProcess.fork(path.resolve(process.cwd(), './serve_worker.js'))
     })
     serviceWorker.on('message', (msg) => {
       if (msg.type === INTERRUPT) {
-        serviceWorker.send({ type: INTERRUPT, result: WorkManagerController.interrupt(msg.data.soloId), data: msg.data  })
+        serviceWorker.send({ type: INTERRUPT, result: WorkManagerController.interrupt(msg.data.soloId), data: msg.data })
       }
     })
   }

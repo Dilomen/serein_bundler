@@ -73,4 +73,28 @@ router.get('/statistics_person', async (ctx) => {
   await statisticsController.searchPersonSummation()
 })
 
+// 删除用户
+router.delete('/user/delete/:id', async (ctx) => {
+  const userController = new UserController(ctx)
+  await userController.deleteUser()
+})
+
+// 用户列表
+router.get('/user/list', async (ctx) => {
+  const userController = new UserController(ctx)
+  await userController.searchUserList()
+})
+
+// 添加用户
+router.post('/user/add', async (ctx) => {
+  const userController = new UserController(ctx)
+  await userController.addUser()
+})
+
+// 编辑
+router.put('/user/edit', async (ctx) => {
+  const userController = new UserController(ctx)
+  await userController.editUser()
+})
+
 module.exports = router

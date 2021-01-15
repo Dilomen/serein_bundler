@@ -24,6 +24,7 @@ class BuildService {
         this.status = BUILD_TYPE.BUILD_WAIT
         this.buildStatus = BUILD_TYPE.BUILD_WAIT
         this.sendStatus = BUILD_TYPE.SEND_WAIT
+        this.timer = null
     }
 
     async start () {
@@ -37,6 +38,9 @@ class BuildService {
         } catch (err) {
             logger.error(err)
         }
+        this.timer = setInterval(async () => {
+            process.send({ type: UPDATE_DETAIL, data: { commitContent: this.cwdOutput, status: this.status, soloId } })
+        }, 2000)
     }
 
     build () {
@@ -104,6 +108,7 @@ class BuildService {
     async updateResult ({ status, data, msg }) {
         this.projectPath = data.projectPath
         this.execStdListening(msg)
+        clearInterval(this.timer)
         try {
             const { pusher, commitMessage, branch, repositoryName, commitTime, soloId } = this.content
             BuildService.closeThread(soloId)

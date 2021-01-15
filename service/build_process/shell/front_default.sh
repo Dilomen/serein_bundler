@@ -38,7 +38,7 @@ if [ ! -f "${checkoutProjectPath}/package.json" ]; then
   mkdir "$gitClonePath" || exit 1
   echo "[$((step++))] 进入项目文件夹"
   cd "$gitClonePath" || exit 1
-  echo "[$((step++))] 拉取git项目 $cloneUrl"
+  echo "[$((step++))] 拉取git项目"
   git clone "$cloneUrl" || exit 1
 else
   echo "[$((step++))] use cache"

@@ -16,17 +16,17 @@ class TaskController {
     let task = null
     if (this._ctx.header['x-gitlab-token']) {
       const { user_username: pusher = '', user_email: pusherEmail } = (this.content || [])
-      const { git_ssh_url: clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
+      const { git_http_url: clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
       const { id: commitId = '', author: { name: commitPerson = '', email: commitPersonEmail = '' } = {}, timestamp: commitTime = '', message: commitMessage } = (commits[commits.length - 1] || {})
       task = new Task({ branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage })
     } else if (this._ctx.header['x-gogs-signature']) {
       const { username: pusher = '', email: pusherEmail = '' } = (this.content.pusher || {})
-      const { ssh_url: clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
+      const { clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
       const { id: commitId = '', author: { name: commitPerson = '', email: commitPersonEmail = '' } = {}, timestamp: commitTime = '', message: commitMessage } = (commits[commits.length - 1] || {})
       task = new Task({ branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage })
     } else {
       const { name: pusher = '', email: pusherEmail = '' } = (this.content.pusher || {})
-      const { ssh_url: clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
+      const { clone_url = '', name: repositoryName = '', owner: { name: repositoryCreator = '' } = {} } = (this.content.repository || {})
       const { id: commitId = '', committer: { username: commitPerson = '', email: commitPersonEmail = '' } = {}, timestamp: commitTime = '', message: commitMessage } = (commits[commits.length - 1] || {})
       task = new Task({ branch, pusher, pusherEmail, repositoryName, clone_url, commitId, repositoryCreator, commitPerson, commitPersonEmail, commitTime, commitMessage })
     }

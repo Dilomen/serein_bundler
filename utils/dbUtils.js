@@ -19,44 +19,44 @@ class DBUtils {
       }
   }
   async insertField(sql, params) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       return this.mysql.query(sql, params, function (err, result) {
         if (err) {
           console.log('[INSERT ERROR] - ', err.message);
-          reject(err)
+          resolve(false)
         }
         resolve(result)
       });
     })
   }
   async updateField(sql, params) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.mysql.query(sql, params, function (err, result) {
         if (err) {
           console.log('[UPDATE ERROR] - ', err.message)
-          reject(err)
+          resolve(false)
         }
         resolve(result)
       })
     });
   }
   async deleteField(sql) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.mysql.query(sql, function (err, result) {
         if (err) {
           console.log('[DELETE ERROR] - ', err.message);
-          reject(err)
+          resolve(false)
         }
         resolve(result)
       });
     })
   }
   async search(sql) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.mysql.query(sql, function selectCb(err, results) {
         if (err) {
           console.log('[SEARCH ERROR] - ', err.message);
-          reject(err)
+          resolve(false)
         }
         resolve(results)
       })
