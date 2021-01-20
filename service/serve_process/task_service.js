@@ -5,6 +5,7 @@ const { logger } = require('../../log.config')
 const dBUtils = require('../../utils/dbUtils')
 const SocketHandler = require('../../utils/socket')
 const { Task } = require('../../utils/types')
+const { decryption } = require('../../utils/aes')
 const { v4: uuidv4 } = require('uuid')
 const { uniteProjectBranch } = require('../../utils/common')
 const rabbit = require('../../model/rabbitmq')
@@ -40,8 +41,9 @@ class TaskService {
     const projectName = uniteProjectBranch(repositoryName, branch)
     const searchSql = `SELECT password FROM user WHERE user_name='${pusher}'`
     const result = await dBUtils.search(searchSql) || []
-    if (!result || result.length === 0) return
-    data.cloneUrl = cloneUrl.replace(/(https*:\/\/)/, `$1${pusher}:${result[0].password}@`)
+    if (!result || result.length === 0) { logger.error('The current user is not registered'); return }
+    const password = decryption(result[0].password)
+    data.cloneUrl = cloneUrl.replace(/(https*:\/\/)/, `$1${pusher}:${password}@`)
     setTimeout(async () => {
       await this.insertTaskToDB(soloId)
       this.taskManager.enqueue({ name: projectName, data, soloId })

@@ -4,9 +4,9 @@ FROM node:12.20
 WORKDIR /usr/src/app
 
 #切换registry源为内网
-# RUN npm config set registry http://192.168.34.140:7000
-ARG registry=https://registry.npm.taobao.org
-RUN yarn config set registry $registry
+RUN npm config set registry http://192.168.34.140:7000
+# ARG registry=https://registry.npm.taobao.org
+# RUN yarn config set registry $registry
 
 #安装依赖
 COPY package.json ./

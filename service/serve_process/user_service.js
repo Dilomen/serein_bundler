@@ -1,5 +1,6 @@
 const dBUtils = require('../../utils/dbUtils')
 const jwt = require('jsonwebtoken')
+const { encryption } = require('../../utils/aes')
 const { logger } = require('../../log.config')
 class UserService {
   constructor(content = {}) {
@@ -7,7 +8,7 @@ class UserService {
   }
 
   async login () {
-    const { username, password } = this.content
+    let { username, password } = this.content
     const searchSql = `SELECT password FROM user WHERE user_name = '${username}'`
     let result = await dBUtils.search(searchSql) || []
     if (result.length === 0 || result[0].password !== password) {
@@ -38,7 +39,9 @@ class UserService {
     })
   }
 
-  async addUser ({ userName, realName, password, identity }) {
+  async addUser ({ userName = '', realName = '', password, identity = 1 }) {
+    if (!userName || !password) return { code: 0, msg: '缺少对应参数' }
+    password = encryption(encodeURIComponent(password))
     const searchSql = `SELECT user_name as userName FROM user WHERE user_name='${userName}'`
     let result = await dBUtils.search(searchSql) || []
     if (result.length > 0) return { code: 0, msg: '用户名已存在' }
@@ -105,11 +108,13 @@ class UserService {
     return result ? { code: 1, msg: '修改用户成功' } : { code: 0, msg: '修改用户失败' }
   }
 
-  async editUser ({ userName, realName, password, identity, id }) {
+  async editUser ({ userName, realName, password, identity = 1, id }) {
+    if (!userName) return { code: 0, msg: '缺少对应参数' }
     const searchSql = `SELECT user_name as userName FROM user WHERE id!='${id}' AND user_name='${userName}'`
     let result = await dBUtils.search(searchSql) || []
     if (result.length > 0) return { code: 0, msg: '用户名已存在' }
     if (password) {
+      password = encryption(encodeURIComponent(password))
       const sql_sentence = `
       UPDATE 
         user

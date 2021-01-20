@@ -59,5 +59,9 @@ echo "[$((step++))] 开始拉取依赖"
 npm install || exit 1
 
 echo "[$((step++))] 开始打包"
+
+set NODE_ENV=production
+set BASE_URL='/'
+
 npm run build || exit 1
 echo "[$((step++))] 打包完成"

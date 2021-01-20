@@ -33,7 +33,7 @@ const os = require('os')
 //     }
 // }
 
-// // 本地开发时的配置
+// 本地开发时的配置
 module.exports = {
     cwd: path.resolve(process.cwd(), './build'),
     maxBuffer: 1024*1024*1024,
