@@ -35,7 +35,7 @@ class TaskService {
     const projectName = uniteProjectBranch(repositoryName, branch)
     const searchSql = `SELECT password FROM user WHERE user_name='${pusher}'`
     const result = await dBUtils.search(searchSql) || []
-    if (!result || result.length === 0) { logger.error('The current user is not registered'); return }
+    if (!result || result.length === 0) { logger.error('The current user is not registered: ' + pusher); return }
     const password = decryption(result[0].password)
     data.cloneUrl = cloneUrl.replace(/(https*:\/\/)/, `$1${pusher}:${password}@`)
     setTimeout(async () => {
