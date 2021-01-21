@@ -26,4 +26,8 @@ function camlCaseObj(obj) {
   return obj
 }
 
-module.exports = {camlCase, camlCaseObj}
+function uniteProjectBranch(projectPath, branchPath) {
+  return projectPath + '_' + branchPath.replace(/\//g, '_')
+}
+
+module.exports = {camlCase, camlCaseObj, uniteProjectBranch}

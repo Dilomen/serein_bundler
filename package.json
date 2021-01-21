@@ -1,12 +1,11 @@
 {
-  "name": "ci-server",
-  "version": "0.0.1",
-  "description": "cil",
-  "main": "./index.js",
+  "name": "bundler",
+  "version": "1.0.0",
+  "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node index.js",
-    "debug": "node --inspect index.js",
+    "start": "node build_serve/index.js",
+    "debug": "node --inspect build_serve/index.js",
     "test": "mocha"
   },
   "dependencies": {
