@@ -11,7 +11,7 @@
  Target Server Version : 50725
  File Encoding         : 65001
 
- Date: 15/01/2021 11:51:56
+ Date: 21/01/2021 17:59:59
 */
 
 SET NAMES utf8mb4;
@@ -35,7 +35,7 @@ CREATE TABLE `bundler_info` (
   `target_path` varchar(200) DEFAULT NULL COMMENT '目标路径',
   PRIMARY KEY (`id`,`solo_id`) USING BTREE,
   KEY `solo_id` (`solo_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=1074 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB AUTO_INCREMENT=1090 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 -- ----------------------------
 -- Table structure for commit_record
@@ -79,5 +79,15 @@ CREATE TABLE `user` (
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+-- ----------------------------
+-- Records of user
+-- ----------------------------
+BEGIN;
+INSERT INTO `user` VALUES (1, 'admin', '张三', 0, 'aUhT6pYoKlVcMQ+QQ9Bv6Q==', 0, '2021-01-14 20:28:24');
+INSERT INTO `user` VALUES (2, 'test', '李四', 0, 'aUhT6pYoKlVcMQ+QQ9Bv6Q==', 1, '2021-01-14 20:01:30');
+INSERT INTO `user` VALUES (3, 'guest', '王五', 1, 'aUhT6pYoKlVcMQ+QQ9Bv6Q==', 1, '2021-01-14 20:01:32');
+INSERT INTO `user` VALUES (8, 'Dilomen', 'zjf', 1, '2D6WqCr3iUrHuQvacill+w==', 0, '2021-01-15 09:44:35');
+COMMIT;
 
 SET FOREIGN_KEY_CHECKS = 1;

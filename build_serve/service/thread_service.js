@@ -27,6 +27,7 @@ function build ({ projectPath, buildDirname, content: { repositoryName, cloneUrl
   })
   child.then((code) => {
     if (code === 0) {
+      projectPath = projectPath + '/' + buildDirname + '/' + repositoryName
       parentPort.postMessage({ type: 'success', data: { projectPath, useTime: new Date().getTime() - startTime } })
     } else {
       parentPort.postMessage({ type: 'fail', data: { projectPath, useTime: new Date().getTime() - startTime } })

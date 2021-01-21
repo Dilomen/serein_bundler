@@ -159,7 +159,7 @@ class BundlerService {
     SocketHandler.getInstance().emit(UPDATE_LIST_VIEW)
     let rabbits = await rabbit()
     const message = { type: 'error', message: '【 *打包失败！* 】\n' + ` @${pusher} 提交了任务\n分支名：【 *${branch}* 】\n项目名：【 *${repositoryName}* 】\n提交信息：${commitMessage}\n提交时间：${createTime}\n打包用时： *${useTime}s*`, commitMsg: commitMessage, dirName: this.build_dirname, repoName: repositoryName }
-    rabbits.producer.sendQueueMsg('anheng', message, {}, (err) => {
+    rabbits.producer.sendQueueMsg('serein', message, {}, (err) => {
       process.send({ type: TYPE_FINISH_SEND, data: { taskName: this.build_dirname } })
       if (err) { this.updateTaskStatus(soloId, BUILD_TYPE.BUILD_FAIL, BUILD_TYPE.SEND_FAIL, useTime); logger.error(err) }
       this.updateTaskStatus(soloId, BUILD_TYPE.BUILD_FAIL, BUILD_TYPE.SEND_SUCCESS, useTime)

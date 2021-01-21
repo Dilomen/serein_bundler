@@ -116,9 +116,9 @@ class BuildService {
             let buildMessage = ` @${pusher} 提交了任务\n分支名：【 *${branch}* 】\n项目名：【 *${repositoryName}* 】\n提交信息：${commitMessage}\n提交时间：${commitTime}\n打包用时： *${Math.ceil(data.useTime / 1000)}s*`
             this.cwdOutput = ''
             const buildPath = fs.existsSync(this.projectPath + '/dist') ? this.projectPath + '/dist' : this.projectPath + '/build'
-            if (status === BUILD_TYPE.BUILD_SUCCESS) {
-                // await this.compress(buildMessage, buildPath)
-                this.MQProducer('success', { message: '【 *打包成功!* 】\n' + buildMessage, commitMessage, repositoryName, buildPath })
+            const { result, zipBuildPath } = await this.compress(buildMessage, buildPath)
+            if (status === BUILD_TYPE.BUILD_SUCCESS && result) {
+                this.MQProducer('success', { message: '【 *打包成功!* 】\n' + buildMessage, commitMessage, repositoryName, buildPath, zipBuildPath })
             } else if (status === BUILD_TYPE.BUILD_FAIL) {
                 this.MQProducer('error', { message: '【 *打包失败！* 】\n' + buildMessage, commitMessage, repositoryName, buildPath })
             }
@@ -130,17 +130,20 @@ class BuildService {
     // 压缩
     async compress (buildMessage, buildPath) {
         buildMessage = encryption(buildMessage)
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             fs.writeFile(buildPath + '/.env', buildMessage, (err) => {
                 if (err) throw err
-                const zipBuildPath = this.projectPath + `/${dayjs(new Date()).format('YYYY-MM-DD-HH_mm_ss')}.zip`
-                compressing.zip.compressDir(buildPath + '/', zipBuildPath).then((err) => {
-                    if (err) logger.error(err)
-                    // new TransmitService().sendFile(zipBuildPath)
-                    resolve()
+                const zipBuildPath = this.projectPath + `/${this.content.repositoryName}_${this.content.branch}_${dayjs(new Date()).format('YYYY-MM-DD-HH_mm_ss')}.zip`
+                compressing.zip.compressDir(buildPath + '/', zipBuildPath).then(async (err) => {
+                    if (err) { 
+                        logger.error(err); 
+                        resolve({ result: false }); 
+                        return 
+                    }
+                    resolve({ result: true, zipBuildPath })
                 }).catch(err => {
                     logger.error(err)
-                    reject(err)
+                    resolve({ result: false })
                 })
             })
         })
@@ -150,7 +153,7 @@ class BuildService {
         this.updateStatus(BUILD_TYPE.SEND_START)
         let rabbits = await rabbit()
         const message = { type, ...content }
-        rabbits.producer.sendQueueMsg('anheng', message, {}, (err) => {
+        rabbits.producer.sendQueueMsg('serein', message, {}, (err) => {
             process.send({ type: TYPE_FINISH_SEND, data: { taskName: this.build_dirname } })
             if (err) { this.updateStatus(BUILD_TYPE.SEND_FAIL); logger.error(err) }
             this.updateStatus(BUILD_TYPE.SEND_SUCCESS)

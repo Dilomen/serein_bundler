@@ -35,7 +35,7 @@
 ```json
 {
   "ref": "refs/heads/master"
-  // ...
+  ...
 }
 ```
 

@@ -8,12 +8,14 @@ module.exports = async () => {
     // 生产
     producer = new Producer(ch, confirmCh)
     producer
-      .addQueue('chat', 'anheng')
-      .addQueue('gitlab', 'anheng')
-      .addQueue('other', 'anheng')
+      .addQueue('chat', 'serein')
+      .addQueue('gitlab', 'serein')
+      .addQueue('transmit', 'serein')
+      .addQueue('email', 'serein')
+      .addQueue('note', 'serein')
       .addQueue('task', 'dispatch')
       .addExChange('dispatch')
-      .addExChange('anheng')
+      .addExChange('serein')
       .relation()
   }
   return new Promise((resolve, reject) => {

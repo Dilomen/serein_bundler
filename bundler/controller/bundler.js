@@ -5,6 +5,7 @@ const { SocketHandler, TASKNOTICE, UPDATE_DIED_PROCESS_TASK_STATUS, INTERRUPT } 
 const Consumer = require('../../model/rabbitmq/consumer')
 // const ChatService = require('../../service/serve_process/notice_service/chat_service')
 const GitlabService = require('../service/notice_service/gitlab_service')
+const TransmitService = require('../service/notice_service/transmit_service')
 // const NoteService = require('../../service/serve_process/notice_service/note_service')
 // const EmailService = require('../../service/serve_process/notice_service/email_service')
 class BundlerContoller {
@@ -73,29 +74,37 @@ class BundlerContoller {
    * 初始化打包消息的消费者
    */
   static async initMessageConsumer () {
-    const gitlab = await new Consumer().getNewInstance()
-    gitlab('gitlab', 'anheng', async (msg, ch) => {
+    const transmit = await new Consumer().getNewInstance()
+
+    transmit('transmit', 'serein', async (msg, ch) => {
+      ch.ack(msg)
       const message = msg.content.toString()
-      const result = await new GitlabService().receiveMessage(message)
-      result && ch.ack(msg)
+      await new TransmitService().receiveMessage(message)
+    })
+
+    const gitlab = await new Consumer().getNewInstance()
+    gitlab('gitlab', 'serein', async (msg, ch) => {
+      ch.ack(msg)
+      const message = msg.content.toString()
+      await new GitlabService().receiveMessage(message)
     })
 
     // const chat = await new Consumer().getNewInstance()
-    // chat('chat', 'anheng', async (msg, ch) => {
+    // chat('chat', 'serein', async (msg, ch) => {
     //   const message = msg.content.toString()
     //   const result = await new ChatService().receiveMessage(message)
     //   result && ch.ack(msg)
     // })
 
     // const email = await new Consumer().getNewInstance()
-    // email('email', 'anheng', async (msg, ch) => {
+    // email('email', 'serein', async (msg, ch) => {
     //   const message = msg.content.toString()
     //   const result = await new EmailService().receiveMessage(message)
     //   result && ch.ack(msg)
     // })
 
     // const note = await new Consumer().getNewInstance()
-    // note('note', 'anheng', async (msg, ch) => {
+    // note('note', 'serein', async (msg, ch) => {
     //   const message = msg.content.toString()
     //   const result = await new NoteService().receiveMessage(message)
     //   result && ch.ack(msg)
